@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL-практикум</title>
+    <style>
+        :root {
+            --bg: #eaf7ff;
+            --card: #ffffff;
+            --text: #1e293b;
+            --shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+            --primary: #facc15;
+            --primary-dark: #f97316;
+        }
+        body.dark {
+            --bg: #0b1729;
+            --card: #1e293b;
+            --text: #e2e8f0;
+            --shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            transition: background 0.3s, color 0.3s;
+            background-image: radial-gradient(circle at 10% 20%, rgba(250, 204, 21, 0.1) 0%, transparent 50%),
+                              radial-gradient(circle at 90% 80%, rgba(251, 146, 60, 0.1) 0%, transparent 50%);
+        }
+
+        .container {
+            max-width: 1000px;
+            width: 100%;
+            background: var(--card);
+            border-radius: 40px;
+            box-shadow: var(--shadow);
+            padding: 40px 50px;
+            transition: background 0.3s, box-shadow 0.3s;
+            text-align: center;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 1.5em;
+        }
+        .header h1 {
+            font-size: 2.8rem;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: inline-block;
+            margin: 0;
+        }
+        .theme-toggle {
+            background: var(--card);
+            border: 2px solid var(--primary);
+            padding: 10px 18px;
+            border-radius: 40px;
+            font-size: 1.3rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text);
+            transition: 0.2s;
+        }
+        .theme-toggle:hover {
+            background: var(--primary);
+            color: #1e293b;
+        }
+        .theme-toggle span {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.8;
+            margin-bottom: 2.5em;
+        }
+
+        .cards {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .card-link {
+            text-decoration: none;
+            color: inherit;
+            flex: 1 1 280px;
+            max-width: 380px;
+            min-width: 240px;
+        }
+        .card {
+            background: var(--card);
+            border: 2px solid var(--primary);
+            border-radius: 30px;
+            padding: 30px 20px;
+            box-shadow: var(--shadow);
+            transition: all 0.25s ease;
+            cursor: pointer;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        .card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
+            border-color: var(--primary-dark);
+        }
+        .card .icon {
+            font-size: 4rem;
+            margin-bottom: 12px;
+        }
+        .card h2 {
+            font-size: 1.6rem;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .card p {
+            font-size: 1rem;
+            opacity: 0.8;
+            line-height: 1.5;
+        }
+        .card .badge {
+            margin-top: 12px;
+            background: var(--primary);
+            color: #1e293b;
+            padding: 4px 16px;
+            border-radius: 30px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+        body.dark .card .badge {
+            background: var(--primary-dark);
+            color: #fff;
+        }
+
+        footer {
+            margin-top: 40px;
+            opacity: 0.6;
+            font-size: 0.9rem;
+            border-top: 1px solid var(--primary);
+            padding-top: 20px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 25px 20px;
+            }
+            .header h1 {
+                font-size: 2.2rem;
+            }
+            .card {
+                padding: 20px 15px;
+            }
+            .card .icon {
+                font-size: 3rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧩 SQL-практикум</h1>
+            <button class="theme-toggle" id="themeToggle">
+                <span id="themeIcon">🌙</span>
+                <span id="themeLabel">Тёмная</span>
+            </button>
+        </div>
+        <p class="subtitle">
+            Добро пожаловать! Выбери формат работы с задачами по SQL.
+        </p>
+
+        <div class="cards">
+            <!-- Карточка 1: Летний адвент -->
+            <a href="advent_sql.html" class="card-link">
+                <div class="card">
+                    <div class="icon">☀️</div>
+                    <h2>Летний SQL-адвент</h2>
+                    <p>24 задания в игровом формате. Идеально для ежедневной практики.</p>
+                    <span class="badge">Играть</span>
+                </div>
+            </a>
+
+            <!-- Карточка 2: Библиотека задач -->
+            <a href="sql_tasks.html" class="card-link">
+                <div class="card">
+                    <div class="icon">📚</div>
+                    <h2>Финансовые SQL-задачи</h2>
+                    <p>30 заданий по финансовой БД.</p>
+                    <span class="badge">Изучать</span>
+                </div>
+            </a>
+        </div>
+
+        <footer>
+            🧩 SQL-практикум • MySQL 8.0+ • Для учеников и всех, кто хочет прокачать SQL
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // ---- Тема ----
+            const themeToggle = document.getElementById('themeToggle');
+            const themeIcon = document.getElementById('themeIcon');
+            const themeLabel = document.getElementById('themeLabel');
+
+            function setTheme(dark) {
+                document.body.classList.toggle('dark', dark);
+                themeIcon.textContent = dark ? '☀️' : '🌙';
+                themeLabel.textContent = dark ? 'Светлая' : 'Тёмная';
+                localStorage.setItem('theme', dark ? 'dark' : 'light');
+            }
+            const saved = localStorage.getItem('theme');
+            setTheme(saved === 'dark');
+            themeToggle.addEventListener('click', () => {
+                setTheme(!document.body.classList.contains('dark'));
+            });
+        });
+    </script>
+</body>
+</html>

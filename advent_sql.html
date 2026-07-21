@@ -1,0 +1,1272 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>☀️ Летний SQL-адвент + игра</title>
+
+    <!-- GSAP -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js">
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/Draggable.min.js">
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/DrawSVGPlugin.min.js">
+    </script>
+
+    <style>
+        :root {
+            --bg: #eaf7ff;
+            --card: #ffffff;
+            --text: #1e293b;
+            --border: #bfdbfe;
+            --shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+            --day-bg: #ffffff;
+            --day-hover: #dbeafe;
+            --toggle-bg: #bae6fd;
+            --toggle-hover: #7dd3fc;
+            --solution-bg: #f0f9ff;
+            --result-bg: #f0fdf4;
+            --solar: #facc15;
+        }
+        body.dark {
+            --bg: #0b1729;
+            --card: #1e293b;
+            --text: #e2e8f0;
+            --border: #334155;
+            --shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+            --day-bg: #2d3b4f;
+            --day-hover: #3b4a62;
+            --toggle-bg: #1e3a5f;
+            --toggle-hover: #2a4a7a;
+            --solution-bg: #1e293b;
+            --result-bg: #1a2e1a;
+            --solar: #fbbf24;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            padding: 20px;
+            transition: background 0.3s, color 0.3s;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: var(--card);
+            border-radius: 32px;
+            box-shadow: var(--shadow);
+            padding: 30px 40px;
+            transition: background 0.3s;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 1.2em;
+        }
+        .header h1 {
+            font-size: 2.8rem;
+            background: linear-gradient(135deg, #facc15, #f97316);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: inline-block;
+        }
+        .theme-toggle {
+            background: var(--toggle-bg);
+            border: none;
+            padding: 10px 18px;
+            border-radius: 40px;
+            font-size: 1.3rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text);
+            transition: 0.2s;
+        }
+        .theme-toggle:hover {
+            background: var(--toggle-hover);
+        }
+        .theme-toggle span {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.8;
+            margin-bottom: 2em;
+        }
+        .subtitle small {
+            display: block;
+            font-size: 0.9rem;
+            opacity: 0.7;
+            margin-top: 4px;
+        }
+
+        /* SQL-скрипт */
+        .script-section {
+            margin: 25px 0 30px;
+        }
+        .script-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+        .btn-script,
+        .btn-copy {
+            background: var(--toggle-bg);
+            border: none;
+            padding: 10px 24px;
+            border-radius: 40px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1rem;
+            color: var(--text);
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-script:hover,
+        .btn-copy:hover {
+            background: var(--toggle-hover);
+        }
+        .sql-block {
+            display: none;
+            background: #0b1120;
+            border-radius: 16px;
+            padding: 20px;
+            overflow-x: auto;
+            border-left: 6px solid var(--solar);
+            margin-top: 10px;
+        }
+        .sql-block.open {
+            display: block;
+        }
+        .sql-block pre {
+            margin: 0;
+            color: #e2e8f0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        /* Календарь */
+        .calendar-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        .day-card {
+            background: var(--day-bg);
+            border: 2px solid var(--border);
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            padding: 16px 18px;
+            min-width: 200px;
+            flex: 0 1 auto;
+        }
+        .day-card:hover {
+            transform: scale(1.02) rotate(0deg) !important;
+            border-color: var(--solar);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+            z-index: 2;
+        }
+
+        /* Карточка с игрой */
+        .day-card.game-card {
+            background: var(--card);
+            padding: 10px;
+            cursor: default;
+            align-items: center;
+        }
+        .day-card.game-card .game-svg-wrapper {
+            width: 100%;
+            height: auto;
+            pointer-events: auto;
+        }
+        .day-card.game-card .game-svg-wrapper svg {
+            width: 100%;
+            height: auto;
+            display: block;
+            filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
+        }
+        .game-label {
+            text-align: center;
+            font-weight: 600;
+            margin-top: 6px;
+            color: var(--solar);
+            font-size: 1.1rem;
+        }
+
+        .day-number {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--solar);
+            margin-bottom: 4px;
+        }
+        .day-title {
+            font-size: 1.15rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+        .day-skill {
+            font-size: 0.8rem;
+            background: var(--toggle-bg);
+            display: inline-block;
+            padding: 0 12px;
+            border-radius: 30px;
+            color: var(--text);
+            margin-bottom: 10px;
+            align-self: flex-start;
+        }
+        .day-task {
+            font-size: 0.95rem;
+            opacity: 0.9;
+            flex: 1;
+            margin-bottom: 10px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 4px;
+        }
+        .toggle-btn {
+            background: var(--toggle-bg);
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--text);
+            transition: 0.2s;
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            border: 1px solid transparent;
+        }
+        .toggle-btn:hover {
+            background: var(--toggle-hover);
+            border-color: var(--solar);
+        }
+        .toggle-btn.result-btn {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .toggle-btn.result-btn:hover {
+            background: #a7f3d0;
+        }
+        body.dark .toggle-btn.result-btn {
+            background: #1e3a2a;
+            color: #a7f3d0;
+        }
+        body.dark .toggle-btn.result-btn:hover {
+            background: #2d5a3d;
+        }
+
+        .result-box,
+        .solution-box {
+            margin-top: 12px;
+            display: none;
+            border-radius: 12px;
+            padding: 12px 14px;
+            font-size: 0.9rem;
+            overflow-x: auto;
+        }
+        .result-box {
+            background: var(--result-bg);
+            border-left: 4px solid #10b981;
+        }
+        .solution-box {
+            background: var(--solution-bg);
+            border-left: 4px solid var(--solar);
+        }
+        .result-box.open,
+        .solution-box.open {
+            display: block;
+        }
+        .result-box table,
+        .solution-box pre {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+        .result-box table th,
+        .result-box table td {
+            border: 1px solid var(--border);
+            padding: 4px 8px;
+            text-align: left;
+        }
+        .result-box table th {
+            background: var(--toggle-bg);
+        }
+        .solution-box pre {
+            margin: 0;
+            background: #0b1120;
+            color: #e2e8f0;
+            padding: 12px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        /* ===== СТИЛИ ДЛЯ ПОБЕДЫ В ИГРЕ (с !important для перебивки атрибутов) ===== */
+        body.win #wood {
+            fill: hsl(30, 62%, 70%) !important;
+        }
+        body.win #wallpaper {
+            fill: hsl(60, 84%, 74%) !important;
+        }
+        body.win #background {
+            fill: hsl(76, 41%, 32%) !important;
+        }
+        body.win #mouth {
+            d: path("M388.5 292C376 320.5 341 307.5 336 266C342 300 311 330 288 297") !important;
+        }
+        body.win #eyes {
+            d: path(
+                "M208 216C229 208 247 196 279 218.5M361.5 218.5C379.5 208 407 187 441 210.5"
+            ) !important;
+        }
+        body.win #cat-image {
+            filter: saturate(1) !important;
+        }
+
+        .palm-left,
+        .palm-right {
+            position: fixed;
+            bottom: 0;
+            z-index: 0;
+            font-size: 6rem;
+            opacity: 0;
+            transition: opacity 1s ease 0.5s;
+            pointer-events: none;
+        }
+        .palm-left {
+            left: 10px;
+            transform: rotate(-10deg);
+        }
+        .palm-right {
+            right: 10px;
+            transform: scaleX(-1) rotate(-10deg);
+            transform-origin: bottom;
+        }
+        body.win .palm-left,
+        body.win .palm-right {
+            opacity: 1;
+        }
+        .sunny {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            font-size: 4rem;
+            opacity: 0;
+            transition: opacity 1s ease 0.8s;
+            z-index: 0;
+            pointer-events: none;
+        }
+        body.win .sunny {
+            opacity: 1;
+        }
+
+        footer {
+            margin-top: 40px;
+            text-align: center;
+            opacity: 0.6;
+            border-top: 1px solid var(--border);
+            padding-top: 20px;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 700px) {
+            .container {
+                padding: 16px;
+            }
+            .header h1 {
+                font-size: 2rem;
+            }
+            .day-card {
+                min-width: 180px;
+            }
+            .palm-left,
+            .palm-right {
+                font-size: 3rem;
+            }
+            .sunny {
+                font-size: 2.5rem;
+                top: 10px;
+                right: 10px;
+            }
+        }
+		
+		/* Скрываем все кнопки "Решение" и блоки с кодом */
+		body.hide-solutions .solution-box,
+		body.hide-solutions .toggle-btn:not(.result-btn) {
+			display: none !important;
+		}
+		
+		.header-buttons {
+			display: flex;
+			gap: 10px;
+			align-items: center;
+		}
+    </style>
+</head>
+<body>
+
+<script>
+    (function() {
+        const saved = localStorage.getItem('advent_solutions_hidden');
+        if (saved === 'true' || saved === null) {
+            document.body.classList.add('hide-solutions');
+        }
+    })();
+</script>
+
+    <!-- Пальмы и солнце -->
+    <div class="palm-left">🌴</div>
+    <div class="palm-right">🌴</div>
+    <div class="sunny">☀️</div>
+
+    <div class="container">
+        <div class="header">
+			<h1>☀️ Летний SQL-адвент</h1>
+			<div class="header-buttons">
+				<button class="theme-toggle" id="themeToggle">
+					<span id="themeIcon">🌙</span>
+					<span id="themeLabel">Тёмная</span>
+				</button>
+				<button class="theme-toggle" id="toggleSolutionsBtn">
+					<span id="solutionsIcon">👁️‍🗨️</span>
+					<span id="solutionsLabel">Показать решения</span>
+				</button>
+			</div>
+		</div>
+        <p class="subtitle">
+            🎲 24 дня вразнобой – каждая плитка уникального размера.
+            <small>Нажмите на кнопку под заданием, чтобы увидеть ожидаемый результат (таблицу) или SQL-код.<br>Решайте задания самостоятельно, а потом проверяйте, что получилось.</small>
+        </p>
+
+        <!-- SQL-скрипт -->
+        <div class="script-section">
+            <div class="script-buttons">
+                <button class="btn-script" id="toggleScriptBtn">📜 Показать SQL-скрипт</button>
+                <button class="btn-copy" id="copyScriptBtn">📋 Копировать скрипт</button>
+            </div>
+            <div class="sql-block" id="sqlScriptBlock">
+                <pre id="sqlScriptContent">
+-- =====================================================
+-- ЛЕТНЯЯ БАЗА ДАННЫХ ДЛЯ SQL-АДВЕНТА (SummerDB)
+-- =====================================================
+DROP DATABASE IF EXISTS SummerDB;
+CREATE DATABASE SummerDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE SummerDB;
+
+CREATE TABLE tourists (
+  tourist_id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  city VARCHAR(100),
+  age INT
+);
+
+CREATE TABLE souvenirs (
+  souvenir_id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(150) NOT NULL,
+  category VARCHAR(50),
+  price DECIMAL(8,2),
+  stock INT
+);
+
+CREATE TABLE bookings (
+  booking_id INT AUTO_INCREMENT PRIMARY KEY,
+  tourist_id INT NOT NULL,
+  souvenir_id INT NOT NULL,
+  quantity INT NOT NULL,
+  booking_date DATE,
+  processed BOOLEAN DEFAULT FALSE,
+  gift_wrapped BOOLEAN DEFAULT FALSE,
+  FOREIGN KEY (tourist_id) REFERENCES tourists(tourist_id),
+  FOREIGN KEY (souvenir_id) REFERENCES souvenirs(souvenir_id)
+);
+
+CREATE TABLE beach_items (
+  item_id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100),
+  color VARCHAR(50),
+  material VARCHAR(50),
+  price DECIMAL(6,2)
+);
+
+CREATE TABLE summer_songs (
+  song_id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(150),
+  artist VARCHAR(100),
+  mood VARCHAR(50),
+  length_seconds INT
+);
+
+CREATE TABLE summer_movies (
+  movie_id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(200),
+  year INT,
+  genre VARCHAR(50),
+  rating DECIMAL(3,1)
+);
+
+CREATE TABLE trips (
+  trip_id INT AUTO_INCREMENT PRIMARY KEY,
+  tourist_id INT,
+  trip_date DATE,
+  description TEXT,
+  FOREIGN KEY (tourist_id) REFERENCES tourists(tourist_id)
+);
+
+-- Данные
+INSERT INTO tourists (name, city, age) VALUES
+('Anna Summer', 'Miami', 28),
+('Ivan Petrov', 'Minsk', 32),
+('Maria Kowalski', 'Warsaw', 35),
+('Sergey Sneg', 'Gomel', 41),
+('Olga Solntse', 'Brest', 27),
+('John Doe', 'New York', 30),
+('Elena Frost', 'Grodno', 38),
+('Nikolai Noel', 'Vitebsk', 33);
+
+INSERT INTO souvenirs (name, category, price, stock) VALUES
+('Wooden Surfboard Toy', 'Beach', 24.99, 20),
+('Plush Sun', 'Beach', 12.50, 40),
+('Summer Puzzle 500pc', 'Games', 25.00, 15),
+('Red Sarong', 'Clothing', 15.00, 50),
+('Luxury Sunglasses', 'Accessories', 89.99, 8),
+('Wooden Starfish Ornament', 'Decor', 7.50, 120),
+('LED Beach Lights', 'Decor', 9.99, 80),
+('Gourmet Coconut Box', 'Food', 19.99, 30),
+('Magic Shell Necklace', 'Decor', 11.00, 50),
+('Board Game: Tropical Quest', 'Games', 34.99, 20),
+('Cozy Beach Towel', 'Clothing', 12.99, 100),
+('Smart Waterproof Speaker', 'Electronics', 59.99, 10);
+
+INSERT INTO beach_items (name, color, material, price) VALUES
+('Wooden Starfish', 'gold', 'wood', 7.50),
+('Glass Shell Red', 'red', 'glass', 3.20),
+('Handmade Wreath', 'green', 'twigs', 15.00),
+('Snowflake Hanging', 'white', 'paper', 2.50),
+('Felt Sun Hat', 'yellow', 'felt', 4.00),
+('Wooden Palm Tree', 'silver', 'wood', 8.00);
+
+INSERT INTO summer_songs (title, artist, mood, length_seconds) VALUES
+('Summer Breeze', 'Seals & Crofts', 'calm', 180),
+('Hot Summer Nights', 'Various', 'cheerful', 150),
+('Beach Boys Medley', 'Beach Boys', 'relaxing', 210),
+('Sunny Day', 'Various', 'upbeat', 195),
+('Wave of Summer', 'Hawaiian', 'dramatic', 160);
+
+INSERT INTO summer_movies (title, year, genre, rating) VALUES
+('Jaws', 1975, 'Thriller', 8.0),
+('The Endless Summer', 1966, 'Documentary', 7.8),
+('Blue Crush', 2002, 'Sport', 6.3),
+('Chasing Mavericks', 2012, 'Drama', 7.0),
+('Point Break', 1991, 'Action', 7.3);
+
+INSERT INTO bookings (tourist_id, souvenir_id, quantity, booking_date, processed, gift_wrapped) VALUES
+(1, 1, 2, '2026-07-05', TRUE, TRUE),
+(2, 2, 1, '2026-07-10', FALSE, FALSE),
+(3, 3, 1, '2026-07-20', FALSE, TRUE),
+(1, 4, 3, '2026-06-28', TRUE, FALSE),
+(4, 7, 2, '2026-07-24', FALSE, TRUE),
+(5, 6, 5, '2026-07-01', TRUE, FALSE),
+(6, 8, 1, '2026-07-23', TRUE, TRUE),
+(7, 5, 1, '2025-07-15', TRUE, FALSE),
+(2, 9, 1, '2026-07-02', TRUE, FALSE),
+(3, 10, 2, '2026-07-02', FALSE, TRUE),
+(4, 11, 4, '2026-07-15', TRUE, FALSE),
+(5, 12, 1, '2026-07-18', FALSE, FALSE),
+(6, 1, 1, '2026-07-24', TRUE, TRUE),
+(8, 3, 2, '2026-08-01', FALSE, FALSE);
+
+INSERT INTO trips (tourist_id, trip_date, description) VALUES
+(1, '2026-07-24', 'Beach party and BBQ'),
+(2, '2026-07-31', 'Fireworks show on the pier'),
+(3, '2023-11-20', 'Old trip to be deleted'),
+(4, '2021-06-15', 'Very old trip for cleanup'),
+(5, '2026-07-06', 'Snorkeling excursion'),
+(6, '2026-07-14', 'Sunset yacht cruise');
+                
+                </pre>
+            </div>
+        </div>
+
+        <!-- Календарь -->
+        <div class="calendar-grid" id="calendarGrid"></div>
+
+        <footer>🌊 Летний SQL-адвент • 24 дня вразнобой • MySQL 8.0+</footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // ---- ТЕМА ----
+            const themeToggle = document.getElementById('themeToggle');
+            const themeIcon = document.getElementById('themeIcon');
+            const themeLabel = document.getElementById('themeLabel');
+
+            function setTheme(dark) {
+                document.body.classList.toggle('dark', dark);
+                themeIcon.textContent = dark ? '☀️' : '🌙';
+                themeLabel.textContent = dark ? 'Светлая' : 'Тёмная';
+                localStorage.setItem('theme', dark ? 'dark' : 'light');
+            }
+            const saved = localStorage.getItem('theme');
+            setTheme(saved === 'dark');
+            themeToggle.addEventListener('click', () => {
+                setTheme(!document.body.classList.contains('dark'));
+            });
+
+            // ---- SQL-СКРИПТ ----
+            const toggleScriptBtn = document.getElementById('toggleScriptBtn');
+            const sqlBlock = document.getElementById('sqlScriptBlock');
+            const copyScriptBtn = document.getElementById('copyScriptBtn');
+            const scriptContent = document.getElementById('sqlScriptContent');
+
+            if (toggleScriptBtn && sqlBlock) {
+                toggleScriptBtn.addEventListener('click', function() {
+                    const isOpen = sqlBlock.classList.toggle('open');
+                    this.textContent = isOpen ? '📜 Скрыть SQL-скрипт' : '📜 Показать SQL-скрипт';
+                });
+            }
+            if (copyScriptBtn && scriptContent) {
+                copyScriptBtn.addEventListener('click', function() {
+                    const text = scriptContent.textContent;
+                    navigator.clipboard.writeText(text).then(() => {
+                        const orig = this.textContent;
+                        this.textContent = '✅ Скопировано!';
+                        setTimeout(() => { this.textContent = orig; }, 2000);
+                    }).catch(() => {
+                        alert('Не удалось скопировать. Выделите текст вручную.');
+                    });
+                });
+            }
+
+            // ---- ЗАДАНИЯ (24 дня) с таблицами результатов ----
+            const tasks = [{
+                day: 1,
+                title: 'Туристы заселяются в отель',
+                skill: 'INSERT',
+                task: 'Добавить 5 туристов и 8 сувениров с летними именами.',
+                expected_table: `<p>✅ Запрос успешно выполнен. В таблицу <strong>tourists</strong> добавлено 5 строк, в <strong>souvenirs</strong> – 8 строк.</p>`,
+                solution: `INSERT INTO tourists (name, city, age) VALUES\n('Alice Waves', 'Miami', 25),\n('Bob Surf', 'Los Angeles', 29),\n('Carol Sun', 'San Diego', 32),\n('Dave Sand', 'Minsk', 27),\n('Eve Beach', 'Gomel', 31);\n\nINSERT INTO souvenirs (name, category, price, stock) VALUES\n('Shell Necklace', 'Decor', 8.99, 50),\n('Beach Hat', 'Clothing', 14.50, 30),\n('Flip Flops', 'Clothing', 6.99, 80),\n('Sunscreen SPF 50', 'Health', 12.00, 40),\n('Water Bottle', 'Sport', 9.99, 60),\n('Beach Ball', 'Toys', 4.99, 100),\n('Tropical T-shirt', 'Clothing', 19.99, 25),\n('Frisbee', 'Sport', 11.50, 35);`
+            }, {
+                day: 2,
+                title: 'Сувениры на витрине',
+                skill: 'SELECT, WHERE, ORDER BY',
+                task: 'Вывести сувениры категории "Beach" по цене по возрастанию.',
+                expected_table: `<table>
+                <tr><th>souvenir_id</th><th>name</th><th>category</th><th>price</th><th>stock</th></tr>
+                <tr><td>2</td><td>Plush Sun</td><td>Beach</td><td>12.50</td><td>40</td></tr>
+                <tr><td>1</td><td>Wooden Surfboard Toy</td><td>Beach</td><td>24.99</td><td>20</td></tr>
+                </table>`,
+                solution: `SELECT souvenir_id, name, category, price, stock\nFROM souvenirs\nWHERE category = 'Beach'\nORDER BY price ASC;`
+            }, {
+                day: 3,
+                title: 'Список покупок',
+                skill: 'JOIN',
+                task: 'Показать имя туриста, название сувенира и количество для всех бронирований.',
+                expected_table: `<table>
+                <tr><th>booking_id</th><th>tourist</th><th>souvenir</th><th>quantity</th><th>booking_date</th></tr>
+                <tr><td>13</td><td>John Doe</td><td>Wooden Surfboard Toy</td><td>1</td><td>2026-07-24</td></tr>
+                <tr><td>4</td><td>Anna Summer</td><td>Red Sarong</td><td>3</td><td>2026-06-28</td></tr>
+                <tr><td>1</td><td>Anna Summer</td><td>Wooden Surfboard Toy</td><td>2</td><td>2026-07-05</td></tr>
+                </table>`,
+                solution: `SELECT b.booking_id, t.name AS tourist, s.name AS souvenir, b.quantity, b.booking_date\nFROM bookings b\nJOIN tourists t ON b.tourist_id = t.tourist_id\nJOIN souvenirs s ON b.souvenir_id = s.souvenir_id\nORDER BY b.booking_date DESC;`
+            }, {
+                day: 4,
+                title: 'Чек от курорта',
+                skill: 'SUM, GROUP BY',
+                task: 'Посчитать общую сумму, потраченную каждым туристом.',
+                expected_table: `<table>
+                <tr><th>tourist_id</th><th>name</th><th>total_spent</th></tr>
+                <tr><td>1</td><td>Anna Summer</td><td>74.97</td></tr>
+                <tr><td>5</td><td>Olga Solntse</td><td>49.95</td></tr>
+                <tr><td>6</td><td>John Doe</td><td>39.98</td></tr>
+                <tr><td>3</td><td>Maria Kowalski</td><td>59.99</td></tr>
+                <tr><td>4</td><td>Sergey Sneg</td><td>83.96</td></tr>
+                </table>`,
+                solution: `SELECT t.tourist_id, t.name, SUM(b.quantity * s.price) AS total_spent\nFROM tourists t\nJOIN bookings b ON t.tourist_id = b.tourist_id\nJOIN souvenirs s ON b.souvenir_id = s.souvenir_id\nGROUP BY t.tourist_id, t.name\nORDER BY total_spent DESC;`
+            }, {
+                day: 5,
+                title: 'Хит-парад сувениров',
+                skill: 'GROUP BY, ORDER BY, LIMIT',
+                task: 'Найти 5 самых покупаемых сувениров по сумме количества.',
+                expected_table: `<table>
+                <tr><th>souvenir_id</th><th>name</th><th>category</th><th>total_ordered</th></tr>
+                <tr><td>6</td><td>Wooden Starfish Ornament</td><td>Decor</td><td>5</td></tr>
+                <tr><td>11</td><td>Cozy Beach Towel</td><td>Clothing</td><td>4</td></tr>
+                <tr><td>1</td><td>Wooden Surfboard Toy</td><td>Beach</td><td>3</td></tr>
+                <tr><td>7</td><td>LED Beach Lights</td><td>Decor</td><td>2</td></tr>
+                <tr><td>3</td><td>Summer Puzzle 500pc</td><td>Games</td><td>2</td></tr>
+                </table>`,
+                solution: `SELECT s.souvenir_id, s.name, s.category, SUM(b.quantity) AS total_ordered\nFROM souvenirs s\nJOIN bookings b ON s.souvenir_id = b.souvenir_id\nGROUP BY s.souvenir_id, s.name, s.category\nORDER BY total_ordered DESC\nLIMIT 5;`
+            }, {
+                day: 6,
+                title: 'Дни летней суеты',
+                skill: 'Работа с датами',
+                task: 'Выбрать бронирования между 1 и 31 июля 2026 года.',
+                expected_table: `<table>
+                <tr><th>booking_id</th><th>tourist_id</th><th>souvenir_id</th><th>quantity</th><th>booking_date</th><th>processed</th><th>gift_wrapped</th></tr>
+                <tr><td>1</td><td>1</td><td>1</td><td>2</td><td>2026-07-05</td><td>1</td><td>1</td></tr>
+                <tr><td>2</td><td>2</td><td>2</td><td>1</td><td>2026-07-10</td><td>0</td><td>0</td></tr>
+                <tr><td>3</td><td>3</td><td>3</td><td>1</td><td>2026-07-20</td><td>0</td><td>1</td></tr>
+                <tr><td>5</td><td>4</td><td>7</td><td>2</td><td>2026-07-24</td><td>0</td><td>1</td></tr>
+                <tr><td>6</td><td>5</td><td>6</td><td>5</td><td>2026-07-01</td><td>1</td><td>0</td></tr>
+                <tr><td>7</td><td>6</td><td>8</td><td>1</td><td>2026-07-23</td><td>1</td><td>1</td></tr>
+                <tr><td>9</td><td>2</td><td>9</td><td>1</td><td>2026-07-02</td><td>1</td><td>0</td></tr>
+                <tr><td>10</td><td>3</td><td>10</td><td>2</td><td>2026-07-02</td><td>0</td><td>1</td></tr>
+                <tr><td>11</td><td>4</td><td>11</td><td>4</td><td>2026-07-15</td><td>1</td><td>0</td></tr>
+                <tr><td>12</td><td>5</td><td>12</td><td>1</td><td>2026-07-18</td><td>0</td><td>0</td></tr>
+                <tr><td>13</td><td>6</td><td>1</td><td>1</td><td>2026-07-24</td><td>1</td><td>1</td></tr>
+                </table>`,
+                solution: `SELECT * FROM bookings\nWHERE booking_date BETWEEN '2026-07-01' AND '2026-07-31';`
+            }, {
+                day: 7,
+                title: 'Уменьшаем запасы в лавке',
+                skill: 'UPDATE, транзакции',
+                task: 'При выполнении бронирования (например, booking_id=1) уменьшить stock сувенира.',
+                expected_table: `<p>✅ Транзакция выполнена. Stock сувенира с id=1 уменьшился на 2 (было 20, стало 18).</p>`,
+                solution: `START TRANSACTION;\nUPDATE souvenirs s\nJOIN bookings b ON s.souvenir_id = b.souvenir_id\nSET s.stock = s.stock - b.quantity\nWHERE b.booking_id = 1 AND s.stock >= b.quantity;\nCOMMIT;`
+            }, {
+                day: 8,
+                title: 'Чистка старых воспоминаний',
+                skill: 'DELETE',
+                task: 'Удалить поездки (trips) старше 2 лет.',
+                expected_table: `<p>✅ Удалены поездки с trip_date < '2024-07-21' (записи с id 3 и 4).</p>`,
+                solution: `DELETE FROM trips WHERE trip_date < DATE_SUB(CURDATE(), INTERVAL 2 YEAR);`
+            }, {
+                day: 9,
+                title: 'Поиск сокровищ в песке',
+                skill: 'LIKE, полнотекст',
+                task: 'Найти пляжные предметы, где материал содержит "wood" или название содержит "star".',
+                expected_table: `<table>
+                <tr><th>item_id</th><th>name</th><th>color</th><th>material</th><th>price</th></tr>
+                <tr><td>1</td><td>Wooden Starfish</td><td>gold</td><td>wood</td><td>7.50</td></tr>
+                <tr><td>6</td><td>Wooden Palm Tree</td><td>silver</td><td>wood</td><td>8.00</td></tr>
+                </table>`,
+                solution: `SELECT * FROM beach_items\nWHERE material LIKE '%wood%' OR name LIKE '%star%';`
+            }, {
+                day: 10,
+                title: 'Ценовой ливень',
+                skill: 'AVG, MIN, MAX, GROUP BY',
+                task: 'Вывести среднюю, минимальную и максимальную цену по категориям сувениров.',
+                expected_table: `<table>
+                <tr><th>category</th><th>count</th><th>avg_price</th><th>min_price</th><th>max_price</th></tr>
+                <tr><td>Accessories</td><td>1</td><td>89.99</td><td>89.99</td><td>89.99</td></tr>
+                <tr><td>Beach</td><td>2</td><td>18.75</td><td>12.50</td><td>24.99</td></tr>
+                <tr><td>Clothing</td><td>2</td><td>14.00</td><td>12.99</td><td>15.00</td></tr>
+                <tr><td>Decor</td><td>3</td><td>9.50</td><td>7.50</td><td>11.00</td></tr>
+                <tr><td>Electronics</td><td>1</td><td>59.99</td><td>59.99</td><td>59.99</td></tr>
+                <tr><td>Food</td><td>1</td><td>19.99</td><td>19.99</td><td>19.99</td></tr>
+                <tr><td>Games</td><td>2</td><td>29.99</td><td>25.00</td><td>34.99</td></tr>
+                </table>`,
+                solution: `SELECT category,\n       COUNT(*) AS count,\n       ROUND(AVG(price),2) AS avg_price,\n       MIN(price) AS min_price,\n       MAX(price) AS max_price\nFROM souvenirs\nGROUP BY category;`
+            }, {
+                day: 11,
+                title: 'Категории по цене',
+                skill: 'CASE',
+                task: 'Классифицировать сувениры как дешёвые (<30), средние (30-70) и дорогие (>70) и посчитать количество.',
+                expected_table: `<table>
+                <tr><th>price_group</th><th>count</th></tr>
+                <tr><td>дешёвые</td><td>7</td></tr>
+                <tr><td>средние</td><td>3</td></tr>
+                <tr><td>дорогие</td><td>2</td></tr>
+                </table>`,
+                solution: `SELECT\n  CASE\n    WHEN price < 30 THEN 'дешёвые'\n    WHEN price BETWEEN 30 AND 70 THEN 'средние'\n    ELSE 'дорогие'\n  END AS price_group,\n  COUNT(*) AS count\nFROM souvenirs\nGROUP BY price_group;`
+            }, {
+                day: 12,
+                title: 'Сувениры дороже среднего',
+                skill: 'Подзапросы',
+                task: 'Найти туристов, купивших сувенир дороже средней цены всех сувениров.',
+                expected_table: `<table>
+                <tr><th>name</th></tr>
+                <tr><td>Anna Summer</td></tr>
+                <tr><td>Ivan Petrov</td></tr>
+                <tr><td>Maria Kowalski</td></tr>
+                <tr><td>Sergey Sneg</td></tr>
+                <tr><td>John Doe</td></tr>
+                <tr><td>Elena Frost</td></tr>
+                </table>`,
+                solution: `SELECT DISTINCT t.name\nFROM tourists t\nJOIN bookings b ON t.tourist_id = b.tourist_id\nJOIN souvenirs s ON b.souvenir_id = s.souvenir_id\nWHERE s.price > (SELECT AVG(price) FROM souvenirs);`
+            }, {
+                day: 13,
+                title: 'Большой летний JOIN',
+                skill: 'Множественные JOIN',
+                task: 'Вывести туристов, их бронирования и связанные пляжные предметы/песни (используйте LEFT JOIN).',
+                expected_table: `<table>
+                <tr><th>name</th><th>booking_date</th><th>souvenir</th><th>beach_item</th><th>song</th></tr>
+                <tr><td>Anna Summer</td><td>2026-07-24</td><td>Wooden Surfboard Toy</td><td>Wooden Starfish</td><td>Summer Breeze</td></tr>
+                <tr><td>Ivan Petrov</td><td>2026-07-10</td><td>Plush Sun</td><td>Wooden Starfish</td><td>Summer Breeze</td></tr>
+                <tr><td>Maria Kowalski</td><td>2026-07-20</td><td>Summer Puzzle 500pc</td><td>Wooden Starfish</td><td>Summer Breeze</td></tr>
+                <tr><td>Sergey Sneg</td><td>2026-07-24</td><td>LED Beach Lights</td><td>Wooden Starfish</td><td>Summer Breeze</td></tr>
+                <tr><td>Olga Solntse</td><td>2026-07-01</td><td>Wooden Starfish Ornament</td><td>Wooden Starfish</td><td>Summer Breeze</td></tr>
+                <tr><td>John Doe</td><td>2026-07-24</td><td>Wooden Surfboard Toy</td><td>Wooden Starfish</td><td>Summer Breeze</td></tr>
+                <tr><td>Elena Frost</td><td>2025-07-15</td><td>Luxury Sunglasses</td><td>Wooden Starfish</td><td>Summer Breeze</td></tr>
+                <tr><td>Nikolai Noel</td><td>NULL</td><td>NULL</td><td>Wooden Starfish</td><td>Summer Breeze</td></tr>
+                </table>`,
+                solution: `SELECT t.name, b.booking_date, s.name AS souvenir, bi.name AS beach_item, ss.title AS song\nFROM tourists t\nLEFT JOIN bookings b ON t.tourist_id = b.tourist_id\nLEFT JOIN souvenirs s ON b.souvenir_id = s.souvenir_id\nLEFT JOIN beach_items bi ON bi.item_id = 1\nLEFT JOIN summer_songs ss ON ss.song_id = 1;`
+            }, {
+                day: 14,
+                title: 'Добавляем упаковку подарков',
+                skill: 'ALTER TABLE',
+                task: 'Добавить столбец gift_wrapped BOOLEAN DEFAULT FALSE в таблицу bookings.',
+                expected_table: `<p>✅ Столбец добавлен. Теперь bookings содержит поле gift_wrapped (по умолчанию FALSE).</p>`,
+                solution: `ALTER TABLE bookings ADD COLUMN gift_wrapped BOOLEAN DEFAULT FALSE;`
+            }, {
+                day: 15,
+                title: 'Плейлист у бассейна',
+                skill: 'JOIN, агрегаты',
+                task: 'Найти 5 самых длинных песен и показать их настроение.',
+                expected_table: `<table>
+                <tr><th>title</th><th>artist</th><th>mood</th><th>length_seconds</th></tr>
+                <tr><td>Beach Boys Medley</td><td>Beach Boys</td><td>relaxing</td><td>210</td></tr>
+                <tr><td>Sunny Day</td><td>Various</td><td>upbeat</td><td>195</td></tr>
+                <tr><td>Summer Breeze</td><td>Seals & Crofts</td><td>calm</td><td>180</td></tr>
+                <tr><td>Wave of Summer</td><td>Hawaiian</td><td>dramatic</td><td>160</td></tr>
+                <tr><td>Hot Summer Nights</td><td>Various</td><td>cheerful</td><td>150</td></tr>
+                </table>`,
+                solution: `SELECT title, artist, mood, length_seconds\nFROM summer_songs\nORDER BY length_seconds DESC\nLIMIT 5;`
+            }, {
+                day: 16,
+                title: 'Рейтинг сувениров для каждого туриста',
+                skill: 'Оконные функции',
+                task: 'Ранжировать сувениры по сумме потраченной суммы для каждого туриста.',
+                expected_table: `<table>
+                <tr><th>name</th><th>souvenir</th><th>spent</th><th>rank_pos</th></tr>
+                <tr><td>Anna Summer</td><td>Wooden Surfboard Toy</td><td>49.98</td><td>1</td></tr>
+                <tr><td>Anna Summer</td><td>Red Sarong</td><td>45.00</td><td>2</td></tr>
+                <tr><td>Sergey Sneg</td><td>Cozy Beach Towel</td><td>51.96</td><td>1</td></tr>
+                <tr><td>Sergey Sneg</td><td>LED Beach Lights</td><td>19.98</td><td>2</td></tr>
+                <tr><td>Olga Solntse</td><td>Wooden Starfish Ornament</td><td>37.50</td><td>1</td></tr>
+                <tr><td>Olga Solntse</td><td>Smart Waterproof Speaker</td><td>59.99</td><td>2</td></tr>
+                <tr><td>John Doe</td><td>Gourmet Coconut Box</td><td>19.99</td><td>1</td></tr>
+                <tr><td>John Doe</td><td>Wooden Surfboard Toy</td><td>24.99</td><td>2</td></tr>
+                <tr><td>Elena Frost</td><td>Luxury Sunglasses</td><td>89.99</td><td>1</td></tr>
+                <tr><td>Ivan Petrov</td><td>Magic Shell Necklace</td><td>11.00</td><td>1</td></tr>
+                <tr><td>Ivan Petrov</td><td>Plush Sun</td><td>12.50</td><td>2</td></tr>
+                <tr><td>Maria Kowalski</td><td>Summer Puzzle 500pc</td><td>25.00</td><td>1</td></tr>
+                <tr><td>Maria Kowalski</td><td>Board Game: Tropical Quest</td><td>69.98</td><td>2</td></tr>
+                </table>`,
+                solution: `SELECT t.name, s.name, SUM(b.quantity * s.price) AS spent,\n       RANK() OVER (PARTITION BY t.tourist_id ORDER BY SUM(b.quantity * s.price) DESC) AS rank_pos\nFROM tourists t\nJOIN bookings b ON t.tourist_id = b.tourist_id\nJOIN souvenirs s ON b.souvenir_id = s.souvenir_id\nGROUP BY t.tourist_id, t.name, s.souvenir_id, s.name;`
+            }, {
+                day: 17,
+                title: 'Соревнование за последний сувенир',
+                skill: 'Транзакции и блокировки',
+                task: 'Симулировать одновременные покупки одного сувенира двумя туристами (используйте FOR UPDATE).',
+                expected_table: `<p>🔒 Одна транзакция блокирует запись, вторая ждёт. После COMMIT первой, вторая увидит обновлённый stock.</p>`,
+                solution: `-- Сессия 1:\nSTART TRANSACTION;\nSELECT stock FROM souvenirs WHERE souvenir_id = 1 FOR UPDATE;\n-- (проверить, обновить, COMMIT или ROLLBACK)\n\n-- Сессия 2 (одновременно):\nSTART TRANSACTION;\nSELECT stock FROM souvenirs WHERE souvenir_id = 1 FOR UPDATE;\n-- (будет ждать, пока первая не завершится)`
+            }, {
+                day: 18,
+                title: 'Рекомендации от робота-экскурсовода',
+                skill: 'Подзапросы, логика рекомендаций',
+                task: 'Предложить каждому туристу сувенир из категории, которую он чаще всего заказывает (исключить уже купленные).',
+                expected_table: `<table>
+                <tr><th>tourist_id</th><th>category</th><th>souvenir_id</th><th>name</th></tr>
+                <tr><td>1</td><td>Beach</td><td>2</td><td>Plush Sun</td></tr>
+                <tr><td>2</td><td>Decor</td><td>6</td><td>Wooden Starfish Ornament</td></tr>
+                <tr><td>3</td><td>Games</td><td>10</td><td>Board Game: Tropical Quest</td></tr>
+                <tr><td>4</td><td>Clothing</td><td>4</td><td>Red Sarong</td></tr>
+                <tr><td>5</td><td>Decor</td><td>7</td><td>LED Beach Lights</td></tr>
+                <tr><td>6</td><td>Beach</td><td>1</td><td>Wooden Surfboard Toy</td></tr>
+                <tr><td>7</td><td>Accessories</td><td>5</td><td>Luxury Sunglasses</td></tr>
+                <tr><td>8</td><td>Games</td><td>3</td><td>Summer Puzzle 500pc</td></tr>
+                </table>`,
+                solution: `-- Сложный запрос, можно предложить упрощённый вариант с CTE\nWITH freq_cat AS (\n    SELECT t.tourist_id, s.category, COUNT(*) AS cnt,\n           ROW_NUMBER() OVER (PARTITION BY t.tourist_id ORDER BY COUNT(*) DESC) AS rn\n    FROM tourists t\n    JOIN bookings b ON t.tourist_id = b.tourist_id\n    JOIN souvenirs s ON b.souvenir_id = s.souvenir_id\n    GROUP BY t.tourist_id, s.category\n),\nbought AS (\n    SELECT DISTINCT tourist_id, souvenir_id FROM bookings\n)\nSELECT f.tourist_id, f.category, s.souvenir_id, s.name\nFROM freq_cat f\nJOIN souvenirs s ON s.category = f.category\nLEFT JOIN bought b ON b.tourist_id = f.tourist_id AND b.souvenir_id = s.souvenir_id\nWHERE f.rn = 1 AND b.souvenir_id IS NULL;`
+            }, {
+                day: 19,
+                title: 'Праздничные траты',
+                skill: 'CREATE VIEW',
+                task: 'Создать представление v_top_spenders с туристами, потратившими >100.',
+                expected_table: `<p>✅ Представление создано. При SELECT * из него будут только туристы с total_spent > 100 (в нашей БД таких нет, поэтому пусто).</p>`,
+                solution: `CREATE VIEW v_top_spenders AS\nSELECT t.tourist_id, t.name, SUM(b.quantity * s.price) AS total_spent\nFROM tourists t\nJOIN bookings b ON t.tourist_id = b.tourist_id\nJOIN souvenirs s ON b.souvenir_id = s.souvenir_id\nGROUP BY t.tourist_id, t.name\nHAVING total_spent > 100;`
+            }, {
+                day: 20,
+                title: 'Резервная копия бронирований',
+                skill: 'CREATE TABLE ... SELECT',
+                task: 'Создать таблицу bookings_july_backup с копией бронирований за июль 2026.',
+                expected_table: `<p>✅ Таблица bookings_july_backup создана и содержит 11 записей (июльские бронирования).</p>`,
+                solution: `CREATE TABLE bookings_july_backup AS\nSELECT * FROM bookings WHERE booking_date BETWEEN '2026-07-01' AND '2026-07-31';`
+            }, {
+                day: 21,
+                title: 'JSON-карточки с дополнительными опциями',
+                skill: 'JSON, JSON_EXTRACT',
+                task: 'Добавить столбец metadata JSON в souvenirs и выбрать сувениры с цветом "red".',
+                expected_table: `<p>✅ Столбец добавлен. После заполнения данных запрос вернёт сувениры с цветом "red". (В нашей БД таких нет, поэтому результат пуст).</p>`,
+                solution: `ALTER TABLE souvenirs ADD COLUMN metadata JSON;\n-- Пример запроса:\nSELECT * FROM souvenirs WHERE JSON_EXTRACT(metadata, '$.color') = 'red';`
+            }, {
+                day: 22,
+                title: 'Ярлыки в поиске',
+                skill: 'CREATE INDEX, EXPLAIN',
+                task: 'Добавить индекс на bookings(booking_date) и сравнить EXPLAIN.',
+                expected_table: `<p>✅ Индекс создан. EXPLAIN покажет использование индекса (possible_keys = idx_booking_date).</p>`,
+                solution: `CREATE INDEX idx_booking_date ON bookings(booking_date);\nEXPLAIN SELECT * FROM bookings WHERE booking_date BETWEEN '2026-07-01' AND '2026-07-31';`
+            }, {
+                day: 23,
+                title: 'Права у помощников',
+                skill: 'GRANT, REVOKE',
+                task: 'Создать пользователя tourist_user с правами только на SELECT в souvenirs.',
+                expected_table: `<p>✅ Пользователь создан и получил права SELECT на таблицу souvenirs.</p>`,
+                solution: `CREATE USER 'tourist_user'@'localhost' IDENTIFIED BY 'password';\nGRANT SELECT ON SummerDB.souvenirs TO 'tourist_user'@'localhost';`
+            }, {
+                day: 24,
+                title: 'Большой летний отчёт',
+                skill: 'Сочетание техник',
+                task: 'Собрать отчёт: топ‑5 покупателей, топ‑5 сувениров, средняя сумма бронирования в июле, экспорт CSV по дням.',
+                expected_table: `<p>✅ Выполнены все запросы. Результаты можно экспортировать в CSV.</p>`,
+                solution: `-- Топ-5 покупателей\nSELECT t.name, SUM(b.quantity * s.price) AS spent\nFROM tourists t\nJOIN bookings b ON t.tourist_id = b.tourist_id\nJOIN souvenirs s ON b.souvenir_id = s.souvenir_id\nGROUP BY t.tourist_id\nORDER BY spent DESC LIMIT 5;\n\n-- Топ-5 сувениров\nSELECT s.name, SUM(b.quantity) AS total_qty\nFROM souvenirs s\nJOIN bookings b ON s.souvenir_id = b.souvenir_id\nGROUP BY s.souvenir_id\nORDER BY total_qty DESC LIMIT 5;\n\n-- Средняя сумма в июле\nSELECT AVG(quantity * price) AS avg_amount\nFROM bookings b JOIN souvenirs s ON b.souvenir_id = s.souvenir_id\nWHERE booking_date BETWEEN '2026-07-01' AND '2026-07-31';`
+            }
+            ];
+
+            // ---- ПЕРЕМЕШИВАНИЕ ----
+            function shuffle(arr) {
+                for (let i = arr.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [arr[i], arr[j]] = [arr[j], arr[i]];
+                }
+                return arr;
+            }
+            const shuffledTasks = shuffle([...tasks]);
+
+            const summerEmojis = ['🌞', '🏖️', '⛱️', '🌊', '🏄', '🍉', '🍦', '🧉', '🌴', '☀️', '🐚', '🦩', '🌺', '🥥', '⛵', '🏝️', '🐠', '🏊', '🚤', '🪁', '🧢', '🕶️', '🍹', '🌅'];
+
+            const grid = document.getElementById('calendarGrid');
+
+            // Случайная позиция для игры (индекс от 0 до 23)
+            const gameIndex = Math.floor(Math.random() * shuffledTasks.length);
+
+            shuffledTasks.forEach((t, index) => {
+                // Если это карточка с игрой
+                if (index === gameIndex) {
+                    const gameCard = document.createElement('div');
+                    gameCard.className = 'day-card game-card';
+                    const gameWidth = 280 + Math.floor(Math.random() * 60); // 280-340
+                    gameCard.style.width = gameWidth + 'px';
+                    gameCard.style.borderRadius = (10 + Math.random() * 30) + 'px';
+                    gameCard.style.transform = `rotate(${(Math.random()*12-6).toFixed(1)}deg)`;
+                    gameCard.style.boxShadow = '0 8px 25px rgba(0,0,0,0.1)';
+
+                    gameCard.innerHTML = `
+                        <div class="game-label">🎮 Выровняй картину</div>
+                        <div class="game-svg-wrapper" id="gameContainer"></div>
+                        <p style="font-size:0.8rem; opacity:0.7; text-align:center; margin-top:4px;">Тяни за рамку</p>
+                    `;
+                    grid.appendChild(gameCard);
+
+                    // Вставим SVG позже
+                    window.gameContainer = gameCard.querySelector('#gameContainer');
+                } else {
+                    // Обычная карточка задания – уникальный размер
+                    const card = document.createElement('div');
+                    card.className = 'day-card';
+
+                    const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+                    // Ширина от 200 до 340
+                    //const width = 200 + Math.floor(Math.random() * 140);
+                    //card.style.width = width + 'px';
+
+                    const tl = rand(0, 40);
+                    const tr = rand(0, 40);
+                    const br = rand(0, 40);
+                    const bl = rand(0, 40);
+                    const borderRadius = `${tl}px ${tr}px ${br}px ${bl}px`;
+                    const rotate = (Math.random() * 16 - 8).toFixed(1);
+                    const padY = rand(12, 28);
+                    const padX = rand(14, 34);
+                    const titleSize = 1.0 + Math.random() * 0.6;
+                    const hue = rand(200, 240);
+                    const borderColor = `hsl(${hue}, 70%, 70%)`;
+                    const shadowColor = `hsla(${hue}, 60%, 50%, 0.15)`;
+
+                    card.style.borderRadius = borderRadius;
+                    card.style.transform = `rotate(${rotate}deg)`;
+                    card.style.padding = `${padY}px ${padX}px`;
+                    card.style.borderColor = borderColor;
+                    card.style.boxShadow = `0 4px 15px ${shadowColor}, 0 2px 4px rgba(0,0,0,0.05)`;
+
+                    const emoji = summerEmojis[(t.day - 1) % summerEmojis.length];
+                    const safeSolution = t.solution.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+                    //const btnPadV = rand(4, 12);
+                    //const btnPadH = rand(10, 24);
+                    //const btnFont = 0.75 + Math.random() * 0.4;
+                    //const btnRadius = rand(8, 32);
+
+                const btnPadV = rand(4, 16);
+                const btnPadH = rand(10, 30);
+                const btnFont = 0.7 + Math.random() * 0.5;
+                const btnRadius = rand(8, 36);
+
+                    card.innerHTML = `
+                        <div class="day-number" style="font-size: ${1.4 + Math.random() * 0.6}rem;">${emoji} День ${t.day}</div>
+                        <div class="day-title" style="font-size: ${titleSize}rem;">${t.title}</div>
+                        <span class="day-skill">${t.skill}</span>
+                        <div class="day-task">${t.task}</div>
+                        <div class="btn-group">
+                            <button class="toggle-btn result-btn" style="padding: ${btnPadV}px ${btnPadH}px; font-size: ${btnFont}rem; border-radius: ${btnRadius}px;">📊 Результат</button>
+                            <button class="toggle-btn" style="padding: ${btnPadV}px ${btnPadH}px; font-size: ${btnFont}rem; border-radius: ${btnRadius}px;">💻 Решение</button>
+                        </div>
+                        <div class="result-box">${t.expected_table}</div>
+                        <div class="solution-box"><pre><code>${safeSolution}</code></pre></div>
+                    `;
+                    grid.appendChild(card);
+
+                    // Обработчики
+                    const resultBtn = card.querySelector('.result-btn');
+                    const solutionBtn = card.querySelector('.toggle-btn:not(.result-btn)');
+                    const resultBox = card.querySelector('.result-box');
+                    const solutionBox = card.querySelector('.solution-box');
+
+                    resultBtn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const isOpen = resultBox.classList.toggle('open');
+                        this.textContent = isOpen ? '📊 Скрыть результат' : '📊 Результат';
+                    });
+                    solutionBtn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const isOpen = solutionBox.classList.toggle('open');
+                        this.textContent = isOpen ? '💻 Скрыть решение' : '💻 Решение';
+                    });
+                }
+            });
+
+            // ---- ВСТАВКА SVG ДЛЯ ИГРЫ ----
+            const gameContainer = window.gameContainer;
+            if (gameContainer) {
+                const svgString = `
+                    <svg viewBox="0 0 1091 1078" fill="none" id="picture-frame" style="width:100%; height:auto;">
+                        <defs>
+                            <filter id="scribble"><feTurbulence baseFrequency="0.05" numOctaves="2" result="noise" seed="0" /><feDisplacementMap in2="noise" in="SourceGraphic" scale="3" /></filter>
+                            <filter id="shadow-blur"><feGaussianBlur in="SourceGraphic" stdDeviation="8" /></filter>
+                            <filter id="inner-shadow-blur"><feGaussianBlur in="SourceGraphic" stdDeviation="3" /></filter>
+                            <mask id="mask0_4_41" mask-type="alpha" maskUnits="userSpaceOnUse" x="265" y="265" width="530" height="530">
+                                <rect id="mask" x="265" y="265" width="530" height="530" rx="7" fill="#FBC87B" />
+                            </mask>
+                            <mask id="glass-mask" mask-type="alpha" maskUnits="userSpaceOnUse" x="100" y="100" width="900" height="900">
+                                <rect id="mask-2" x="100" y="100" width="900" height="900" rx="7" fill="#FBC87B" />
+                            </mask>
+                        </defs>
+                        <g>
+                            <rect id="shadow" filter="url(#shadow-blur)" x="0" y="0" width="1051" height="1051" rx="25" fill="#232323" />
+                            <rect id="matte" x="54" y="52" width="951" height="955" fill="#F5EBE2" />
+                            <g id="portrait">
+                                <g mask="url(#mask0_4_41)">
+                                    <rect id="background" x="265" y="265" width="530" height="530" />
+                                    <g id="cat-image">
+                                        <path id="Vector" d="M72.9999 346.5C83.5999 326.6 94.2999 306.6 104.9 286.7C108.6 279.6 107.5 277.1 99.7999 274.6C92.0999 272.1 84.0999 270 76.4999 267.4C74.1999 266.6 71.4999 264.8 70.3999 262.7C67.9999 258 71.6999 252.8 76.9999 253.5C88.0999 255.1 99.1999 257 110.3 259.3C115.8 260.4 118.9 259.8 121.4 254.7C122.9 251.7 124.1 248.6 124.8 245.3C126.3 238.8 124.8 236.4 118.6 233.7C111.8 230.6 105 227.5 98.2999 224.1C92.6999 221.3 91.1999 217.5 93.0999 212.8C94.9999 208.1 98.7999 206.5 104.7 208.5C110.5 210.5 116.2 212.8 122 215C128.3 217.5 130.3 216.9 132.2 210.2C133.9 204.2 135 197.9 136 191.7C144.7 141 155 90.7001 174.3 42.8001C178.9 31.5001 184.5 20.2001 191.8 10.5001C203.8 -5.39994 220.5 -2.09994 230.4 11.9001C248.2 37.0001 264.5 63.1001 281.2 88.9001C285.1 94.9001 289.8 98.3001 296.9 98.5001C314.1 98.9001 313.9 99.0001 319.7 83.1001C328.8 58.1001 339.3 33.7001 353.8 11.1001C360.1 1.40006 367.5 -1.49994 377.8 0.50006C380.6 1.10006 383.7 2.60006 385.8 4.60006C395.5 14.1001 401.4 26.0001 406.6 38.3001C413.1 53.8001 420.2 69.1001 426.2 84.7001C441 122.8 451.1 162.2 458.6 202.3C460.1 210.2 459.7 218.5 460 226.7C460.3 235.5 463.2 238.2 471.9 236.2C477.7 234.9 483.2 232.4 489 231C491.8 230.3 494.9 230.7 497.8 231.2C501.8 231.8 504.6 234.1 504.9 238.4C505.2 242.9 502.4 245.6 498.5 247C491.2 249.6 483.7 252 476.3 254.5C474.7 255 473.1 255.5 471.6 256C465.3 258.1 464.1 259.9 465 265.7C465.9 271.1 468.5 273.2 474.2 273.5C482.8 274 491.4 274.5 500 275.3C504.3 275.7 507 277.7 507.2 282.6C507.3 287.5 504.5 289.8 500.4 290.4C493.3 291.4 486.2 291.9 479.1 292.6C474.8 293 470.5 293.4 466.2 293.8C465.9 291.2 465.8 288.5 465.1 285.9C462.2 274 453.6 267.8 442.7 263.9C428.6 258.9 414.4 266.1 409.3 280.7C404.7 294 411.7 307.8 425.7 312.2C437.9 316 449.5 314.4 460.3 307.3C458.8 324 454.9 339.7 442.9 352.3C433.5 362.2 422.1 368.7 409.5 373.4C401.6 376.3 393.6 379.6 389.3 387.1C386.1 392.7 383.4 399.4 383.1 405.7C382.1 432.9 382.1 460.2 381.8 487.5C304.5 487.5 227.1 487.5 149.8 487.5C150.1 481.5 150.8 475.6 150.7 469.6C150.6 456.7 150.6 443.7 149.7 430.8C148.8 418.8 144.6 407.5 138.8 397C132.3 385.1 123.8 374.7 113 366.4C101.2 357.1 88.2999 349.3 72.9999 346.5ZM206.3 41.2001C201.9 40.8001 197.2 45.2001 194.6 51.6001C188.2 67.9001 181.7 84.3001 176.3 101C172.4 113.2 170 125.9 167.2 138.5C166 143.8 165.4 149.3 165 154.7C164.7 159.4 166.9 161.3 171.4 160.4C195.1 156.1 216.8 146.9 236.1 132.5C244 126.6 249 118 247.7 107.9C245.2 89.5001 238.5 72.3001 230 55.9001C225.9 47.8001 219.6 41.6001 206.3 41.2001ZM409.4 138.8C413.5 138.3 418.2 138.1 422.7 137.2C426.1 136.5 428.8 135.4 427 130.5C422.1 117.1 417.9 103.5 413 90.1001C405.9 70.6001 395.9 52.7001 383.2 36.3001C377.3 28.7001 369.6 26.6001 362.2 30.4001C351.3 35.9001 348.9 46.4001 347.1 56.9001C345.3 67.6001 344.1 78.5001 343.3 89.4001C341.9 106.9 344.1 117.2 359.8 125.6C374.9 133.8 391.6 137.7 409.4 138.8Z" fill="#F18DFC" />
+                                        <path id="Vector_2" d="M73 346.5C88.3 349.4 101.2 357.1 113.2 366.4C123.9 374.7 132.4 385.1 139 397C144.8 407.6 149 418.8 149.9 430.8C150.8 443.7 150.8 456.7 150.9 469.6C151 475.6 150.3 481.5 150 487.5C100 487.5 50 487.5 0 487.5C5.6 476 11.1 464.4 16.9 453C31.1 425.4 45.3 398 59.7 370.5C63.9 362.4 68.6 354.5 73 346.5Z" fill="#DA63E9" />
+                                        <path id="Vector_3" d="M460.5 307.3C449.7 314.4 438.1 316 425.9 312.2C411.8 307.8 404.8 294 409.5 280.7C414.6 266.1 428.8 258.9 442.9 263.9C453.8 267.7 462.4 273.9 465.3 285.9C465.9 288.5 466 291.1 466.4 293.8C464.3 298.3 462.4 302.8 460.5 307.3Z" fill="#DA63E9" />
+                                        <path id="Vector_4" d="M206.3 41.2C219.7 41.7 225.9 47.9 230.1 55.9C238.6 72.3 245.3 89.5 247.8 107.9C249.2 118 244.1 126.7 236.2 132.5C216.9 146.9 195.2 156.1 171.5 160.4C167 161.2 164.8 159.3 165.1 154.7C165.5 149.3 166.1 143.8 167.3 138.5C170.1 125.9 172.4 113.2 176.4 101C181.8 84.3 188.3 67.9 194.7 51.6C197.1 45.2 201.9 40.8 206.3 41.2Z" fill="#DA63E9" />
+                                        <path id="Vector_5" d="M409.4 138.8C391.6 137.7 374.9 133.8 359.8 125.6C344.1 117.1 341.9 106.9 343.3 89.4C344.2 78.5 345.4 67.7 347.1 56.9C348.8 46.4 351.3 35.8 362.2 30.4C369.6 26.7 377.3 28.7 383.2 36.3C395.9 52.7 406 70.6 413 90.1C417.8 103.5 422.1 117.1 427 130.5C428.8 135.4 426.1 136.6 422.7 137.2C418.2 138.1 413.5 138.4 409.4 138.8Z" fill="#DA63E9" />
+                                        <path id="mouth" d="M374 289.5C360.5 288.5 342.5 288.5 336 266C338.53 287 314 287 302 291" stroke="#C03DCF" stroke-width="13" stroke-linecap="round" />
+                                        <path id="Vector_6" d="M316.1 264.8C318.2 266.6 320.7 267.4 323 268.8C325.3 270.1 327.6 271.7 330.3 272.3C333.2 273 336.2 273.4 339.2 273.7C342.7 274.1 345 272.4 347.7 270.7C349.8 269.4 352 268.1 354.2 266.8C359 263.9 361.3 259.5 359.8 254.1C358.4 249.3 353.9 247.5 349.4 246.6C339.7 244.5 329.9 244.9 320.3 247.6C311 250.2 308.8 258.4 316.1 264.8Z" fill="#C03DCF" />
+                                        <path id="Vector_7" d="M225.8 323.8C214.1 323.5 203.6 320.3 196.3 310.7C188.3 300.3 188.7 286.2 197.4 274C203 266 215.8 260 228 263.3C241.5 267 252.3 273.8 257.3 287.7C263 303.6 255.4 318.6 237.6 322.2C233.7 323.1 229.7 323.3 225.8 323.8Z" fill="#DA63E9" />
+                                        <path id="eyes" d="M208 216C226 212 254 212 279 218.5M361.5 218.5C379.5 216 411.5 210.5 441 210.5" stroke="#C03DCF" stroke-width="19" stroke-linecap="round" />
+                                    </g>
+                                </g>
+                            </g>
+                            <g mask="url(#glass-mask)">
+                                <g id="glare-group">
+                                    <line id="glare-1" stroke-width="60" x1="700" y1="-300" x2="-400" y2="1000" stroke="white" />
+                                    <line id="glare-2" stroke-width="20" x1="700" y1="-300" x2="-400" y2="1000" stroke="white" />
+                                    <line id="glare-3" stroke-width="30" x1="700" y1="-300" x2="-400" y2="1000" stroke="white" />
+                                </g>
+                            </g>
+                            <g id="frame">
+                                <path id="inner-shadow" filter="url(#inner-shadow-blur)" fill-rule="evenodd" clip-rule="evenodd" d="M50.817 19C33.2449 19 19 33.245 19 50.817V1009.18C19 1026.76 33.245 1041 50.817 1041H1009.18C1026.76 1041 1041 1026.76 1041 1009.18V50.817C1041 33.2449 1026.76 19 1009.18 19H50.817ZM103.845 94.2038C98.5204 94.2038 94.2038 98.5204 94.2038 103.845V956.155C94.2038 961.48 98.5204 965.796 103.845 965.796H956.155C961.48 965.796 965.796 961.48 965.796 956.155V103.845C965.796 98.5204 961.48 94.2038 956.155 94.2038H103.845Z" fill="#6D6D6D" />
+                                <path id="wood" fill-rule="evenodd" clip-rule="evenodd" d="M33 0C14.7746 0 0 14.7746 0 33V1027C0 1045.23 14.7746 1060 33 1060H1027C1045.23 1060 1060 1045.23 1060 1027V33C1060 14.7746 1045.23 0 1027 0H33ZM88 78C82.4771 78 78 82.4772 78 88V972C78 977.523 82.4772 982 88 982H972C977.523 982 982 977.523 982 972V88C982 82.4772 977.523 78 972 78H88Z" fill="#D9D9D9" />
+                            </g>
+                            <path id="arrow" d="M113.435 3.66483C117.942 22 119.496 35.1236 117.942 51.1037C116.541 65.5147 113.161 78.4826 106.111 91.2182C86.1922 127.2 53.7066 138.69 15.4999 137C9.65541 136.742 2.1904 137.04 4.49995 135.5C7.91693 133.222 29.4838 116.893 25.5 118C20.2282 119.464 3.5 129.757 3.5 136C3.5 142.241 20.4205 152.065 24.9999 155.5" stroke="none" stroke-width="7" stroke-linecap="round" />
+                        </g>
+                    </svg>
+                `;
+                gameContainer.innerHTML = svgString;
+            }
+
+            // ---- ИНИЦИАЛИЗАЦИЯ ИГРЫ ----
+            setTimeout(() => {
+                const pictureFrame = document.querySelector('#picture-frame');
+                if (!pictureFrame || typeof gsap === 'undefined' || typeof Draggable === 'undefined') return;
+
+                let triangleTL = gsap.timeline({ paused: true, repeat: -1, yoyo: true });
+
+                function getShadowXY(rotation, inner = false) {
+                    if (inner) {
+                        return [
+                            Math.sin(rotation / (180 / Math.PI)) * 10,
+                            Math.cos(rotation / (180 / Math.PI)) * 10
+                        ];
+                    } else {
+                        return [
+                            Math.sin(rotation / (180 / Math.PI)) * 45 + 15,
+                            Math.cos(rotation / (180 / Math.PI)) * 45
+                        ];
+                    }
+                }
+
+                function adjustPicture(rotation, duration = 0) {
+                    const [outerShadowX, outerShadowY] = getShadowXY(rotation, false);
+                    gsap.to("#shadow", { x: outerShadowX, y: outerShadowY, duration });
+                    const [innerShadowX, innerShadowY] = getShadowXY(rotation, true);
+                    gsap.to("#inner-shadow", { x: innerShadowX, y: innerShadowY, duration });
+                    gsap.to("#glare-group", {
+                        duration,
+                        rotate: -1 * rotation,
+                        transformOrigin: "center center"
+                    });
+                }
+
+                function handleMoveEnd(rotation) {
+                    if (rotation > 45 || rotation < -45) {
+                        const sign = Math.sign(rotation);
+                        const newRotation = gsap.utils.random(15, 25, 1) * sign;
+                        gsap.to("#picture-frame", { rotation: newRotation, duration: 2 });
+                        adjustPicture(newRotation, 2);
+                    }
+                    const body = document.querySelector('body');
+                    if (rotation > -1 && rotation < 1) {
+                        body.classList.add('win');
+                        triangleTL.resume();
+                        console.log('🎉 Выровняли! Котик меняет цвет, пальмы растут.');
+                    } else {
+                        body.classList.remove('win');
+                        triangleTL.pause();
+                    }
+                }
+
+                function initGame() {
+                    const initialRotation = gsap.utils.random(8.5, 16, 0.1) * gsap.utils.random([1, -1]);
+                    gsap.set("#cat-image", { x: 275, y: 315 });
+                    gsap.set("#glare-2", { x: 60, y: 60 });
+                    gsap.set("#glare-3", { x: 760, y: 360 });
+
+                    const wallpaperPaths = document.querySelectorAll('#wallpaper path');
+                    gsap.set(wallpaperPaths, { transformOrigin: "center" });
+
+                    triangleTL.to(wallpaperPaths, {
+                        rotate: 60,
+                        ease: "back.inOut(2.5)",
+                        duration: 0.6
+                    });
+
+                    gsap.set("#picture-frame", { rotation: initialRotation });
+                    adjustPicture(initialRotation, 0);
+
+                    const rotationSign = Math.sign(initialRotation);
+                    const arrow = document.querySelector('#arrow');
+                    if (arrow) {
+                        gsap.set(arrow, {
+                            stroke: "hsl(200, 20%, 20%)",
+                            y: 1010,
+                            scaleX: rotationSign * -1,
+                            x: initialRotation > 0 ? 5 : 1050,
+                            drawSVG: "0%",
+                            opacity: 0.5,
+                            rotate: 40 * rotationSign
+                        });
+                        gsap.timeline({ delay: 2, repeat: -1, repeatDelay: 2 })
+                            .to(arrow, {
+                                duration: 0.8,
+                                drawSVG: "0% 100%",
+                                ease: "power2.inOut",
+                                rotate: 0
+                            })
+                            .to(arrow, {
+                                drawSVG: "100% 100%",
+                                duration: 0.4
+                            }, 1.5)
+                            .set(arrow, { drawSVG: "0% 0%", rotate: 40 * rotationSign });
+                    }
+
+                    gsap.to('body', { opacity: 1, duration: 0.2 });
+
+                    Draggable.create("#picture-frame", {
+                        type: "rotation",
+                        inertia: true,
+                        bounds: { minRotation: -110, maxRotation: 110 },
+                        onDrag: function() {
+                            adjustPicture(this.rotation);
+                            gsap.to("#arrow", { opacity: 0, duration: 0.2 });
+                        },
+                        onDragEnd: function() {
+                            handleMoveEnd(this.rotation);
+                        },
+                        onThrowUpdate: function() {
+                            adjustPicture(this.rotation);
+                        },
+                        onThrowComplete: function() {
+                            handleMoveEnd(this.rotation);
+                        }
+                    });
+                }
+
+                initGame();
+            }, 300);
+        });
+		
+		// ---- Переключение видимости решений ----
+		const toggleSolutionsBtn = document.getElementById('toggleSolutionsBtn');
+		const solutionsIcon = document.getElementById('solutionsIcon');
+		const solutionsLabel = document.getElementById('solutionsLabel');
+
+		// Состояние: true = решения скрыты (по умолчанию), false = показаны
+		let solutionsHidden = true;
+
+		// Загружаем сохранённое состояние
+		const savedSolutions = localStorage.getItem('advent_solutions_hidden');
+		if (savedSolutions !== null) {
+			solutionsHidden = savedSolutions === 'true';
+		}
+
+		function applySolutionsState(hide) {
+			if (hide) {
+				document.body.classList.add('hide-solutions');
+				solutionsIcon.textContent = '👁️‍🗨️';
+				solutionsLabel.textContent = 'Показать решения';
+			} else {
+				document.body.classList.remove('hide-solutions');
+				solutionsIcon.textContent = '👁️';
+				solutionsLabel.textContent = 'Скрыть решения';
+			}
+			localStorage.setItem('advent_solutions_hidden', hide);
+		}
+
+		// Применяем начальное состояние
+		applySolutionsState(solutionsHidden);
+
+		// Обработчик клика
+		toggleSolutionsBtn.addEventListener('click', function() {
+			solutionsHidden = !solutionsHidden;
+			applySolutionsState(solutionsHidden);
+		});
+    </script>
+</body>
+</html>

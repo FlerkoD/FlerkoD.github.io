@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Тестовая БД «Финансы и заказы»</title>
+    <style>
+        /* ===== CSS-переменные для светлой/тёмной темы ===== */
+        :root {
+            --bg: #f4f7fc;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --border: #e2e8f0;
+            --code-bg: #f1f5f9;
+            --code-text: #0b1120;
+            --toggle-bg: #e0e7ff;
+            --toggle-hover: #c7d2fe;
+            --toggle-open-bg: #d1fae5;
+            --toggle-open-text: #065f46;
+            --shadow: 0 20px 60px rgba(0,0,0,0.08);
+            --schema-bg: #f8fafc;
+        }
+        body.dark {
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --text: #e2e8f0;
+            --border: #334155;
+            --code-bg: #1e293b;
+            --code-text: #e2e8f0;
+            --toggle-bg: #334155;
+            --toggle-hover: #475569;
+            --toggle-open-bg: #065f46;
+            --toggle-open-text: #d1fae5;
+            --shadow: 0 20px 60px rgba(0,0,0,0.4);
+            --schema-bg: #1e293b;
+        }
+
+        /* Общие стили */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            padding: 20px;
+            line-height: 1.6;
+            transition: background 0.3s, color 0.3s;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            border-radius: 24px;
+            box-shadow: var(--shadow);
+            padding: 40px 50px;
+            transition: background 0.3s, box-shadow 0.3s;
+        }
+        /* Шапка с переключателем и кнопкой "На главную" */
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 0.5em;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .header-left h1 {
+            font-size: 2.4rem;
+            background: linear-gradient(135deg, #2563eb, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: inline-block;
+            margin: 0;
+        }
+        .home-link {
+            background: var(--toggle-bg);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 40px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            color: var(--text);
+            transition: background 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .home-link:hover {
+            background: var(--toggle-hover);
+        }
+        .theme-toggle {
+            background: var(--toggle-bg);
+            border: none;
+            padding: 10px 16px;
+            border-radius: 40px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .theme-toggle:hover {
+            background: var(--toggle-hover);
+        }
+        .theme-toggle span {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            margin: 1.5em 0 0.5em;
+            border-bottom: 3px solid var(--border);
+            padding-bottom: 0.3em;
+        }
+        .section-desc {
+            color: var(--text);
+            opacity: 0.8;
+            margin-bottom: 1.5em;
+            font-size: 1.05rem;
+        }
+
+        /* ===== СХЕМА БД ===== */
+        .schema-wrapper {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 30px 50px;
+            background: var(--schema-bg);
+            border-radius: 20px;
+            padding: 30px 20px;
+            margin: 15px 0 25px;
+            transition: background 0.3s;
+            position: relative;
+        }
+        .table-box {
+            background: var(--card-bg);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 16px;
+            min-width: 160px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            transition: background 0.3s, border-color 0.3s;
+        }
+        .table-box .tname {
+            font-weight: 700;
+            font-size: 1.05rem;
+            text-align: center;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 6px;
+            margin-bottom: 8px;
+        }
+        .table-box .field {
+            font-size: 0.85rem;
+            padding: 2px 0;
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        .table-box .field .pk {
+            color: #2563eb;
+            font-weight: 600;
+        }
+        .table-box .field .fk {
+            color: #7c3aed;
+            font-weight: 600;
+        }
+        .table-box .field .type {
+            color: var(--text);
+            opacity: 0.6;
+            font-size: 0.75rem;
+        }
+        .schema-relations {
+            display: none;
+        }
+
+        /* ===== SQL-код ===== */
+        .btn-collapse {
+            background: var(--toggle-bg);
+            border: none;
+            padding: 6px 18px;
+            border-radius: 30px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+            color: var(--text);
+        }
+        .btn-collapse:hover {
+            background: var(--toggle-hover);
+        }
+        .hidden-code {
+            display: none;
+        }
+        .hidden-code.open {
+            display: block;
+        }
+        .sql-block {
+            background: #0b1120;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 15px 0;
+            overflow-x: auto;
+        }
+        .sql-block code {
+            background: transparent;
+            color: #e2e8f0;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+        }
+
+        /* ===== КАРТОЧКИ ЗАДАНИЙ ===== */
+        .task-card {
+            background: var(--schema-bg);
+            border-radius: 16px;
+            padding: 20px 24px;
+            margin: 16px 0;
+            border: 1px solid var(--border);
+            transition: box-shadow 0.2s, background 0.3s;
+            cursor: pointer;
+        }
+        .task-card:hover {
+            box-shadow: 0 8px 25px rgba(0,0,0,0.05);
+        }
+        .task-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .task-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .task-number {
+            background: #3b82f6;
+            color: white;
+            border-radius: 40px;
+            width: 28px;
+            height: 28px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+        .task-desc {
+            color: var(--text);
+            opacity: 0.85;
+            margin-top: 8px;
+        }
+        .task-solution {
+            margin-top: 16px;
+            display: none;
+            background: var(--code-bg);
+            border-radius: 12px;
+            padding: 16px;
+            border-left: 4px solid #10b981;
+            transition: background 0.3s;
+        }
+        .task-solution.open {
+            display: block;
+        }
+        .task-solution pre {
+            margin: 0;
+            background: #0b1120;
+            border-radius: 8px;
+            padding: 16px;
+            overflow-x: auto;
+            color: #e2e8f0;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 0.9rem;
+        }
+        .toggle-btn {
+            background: var(--toggle-bg);
+            border: none;
+            color: var(--text);
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.9rem;
+            padding: 4px 12px;
+            border-radius: 30px;
+            transition: background 0.2s;
+        }
+        .toggle-btn:hover {
+            background: var(--toggle-hover);
+        }
+        .toggle-btn.open {
+            background: var(--toggle-open-bg);
+            color: var(--toggle-open-text);
+        }
+
+        footer {
+            margin-top: 40px;
+            text-align: center;
+            opacity: 0.6;
+            font-size: 0.9rem;
+            border-top: 1px solid var(--border);
+            padding-top: 20px;
+        }
+
+        @media (max-width: 700px) {
+            .container { padding: 20px; }
+            h1 { font-size: 1.8rem; }
+            .task-header { flex-direction: column; align-items: stretch; }
+            .schema-wrapper { flex-direction: column; align-items: center; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- Шапка с переключателем и кнопкой "На главную" -->
+    <div class="header-row">
+        <div class="header-left">
+            <a href="index.html" class="home-link">🏠 На главную</a>
+            <h1>📘 Тестовая БД «Финансы и заказы»</h1>
+        </div>
+        <button class="theme-toggle" id="themeToggle" aria-label="Переключить тему">
+            <span id="themeIcon">🌙</span>
+            <span id="themeLabel">Тёмная</span>
+        </button>
+    </div>
+    <p class="section-desc">
+        База данных для отработки навыков SQL: очистка данных, агрегации, оконные функции, поиск аномалий.
+        Все таблицы содержат по ~100 записей, включая дубли, некорректные данные, висячие записи.
+    </p>
+
+    <!-- ======= СХЕМА БД СО СВЯЗЯМИ ======= -->
+    <h2>🗂️ Схема БД (со связями)</h2>
+    <div class="schema-wrapper">
+        <!-- Таблица users -->
+        <div class="table-box">
+            <div class="tname">users</div>
+            <div class="field"><span class="pk">id</span> <span class="type">INT PK</span></div>
+            <div class="field"><span>login</span> <span class="type">VARCHAR(50)</span></div>
+            <div class="field"><span>email</span> <span class="type">VARCHAR(100)</span></div>
+            <div class="field"><span>full_name</span> <span class="type">VARCHAR(100)</span></div>
+            <div class="field"><span>birth_date</span> <span class="type">DATE</span></div>
+            <div class="field"><span>registration_date</span> <span class="type">DATETIME</span></div>
+        </div>
+        <!-- Таблица orders -->
+        <div class="table-box">
+            <div class="tname">orders</div>
+            <div class="field"><span class="pk">id</span> <span class="type">INT PK</span></div>
+            <div class="field"><span class="fk">user_id</span> <span class="type">INT → users.id</span></div>
+            <div class="field"><span>order_date</span> <span class="type">DATETIME</span></div>
+            <div class="field"><span>total</span> <span class="type">DECIMAL</span></div>
+            <div class="field"><span>status</span> <span class="type">VARCHAR(20)</span></div>
+        </div>
+        <!-- Таблица order_items -->
+        <div class="table-box">
+            <div class="tname">order_items</div>
+            <div class="field"><span class="pk">id</span> <span class="type">INT PK</span></div>
+            <div class="field"><span class="fk">order_id</span> <span class="type">INT → orders.id</span></div>
+            <div class="field"><span class="fk">product_id</span> <span class="type">INT → products.id</span></div>
+            <div class="field"><span>quantity</span> <span class="type">INT</span></div>
+            <div class="field"><span>price</span> <span class="type">DECIMAL</span></div>
+        </div>
+        <!-- Таблица products -->
+        <div class="table-box">
+            <div class="tname">products</div>
+            <div class="field"><span class="pk">id</span> <span class="type">INT PK</span></div>
+            <div class="field"><span>name</span> <span class="type">VARCHAR(100)</span></div>
+            <div class="field"><span>category</span> <span class="type">VARCHAR(50)</span></div>
+            <div class="field"><span>price</span> <span class="type">DECIMAL</span></div>
+        </div>
+        <!-- Таблица employees (отдельно, без связей) -->
+        <div class="table-box">
+            <div class="tname">employees</div>
+            <div class="field"><span class="pk">id</span> <span class="type">INT PK</span></div>
+            <div class="field"><span>name</span> <span class="type">VARCHAR(100)</span></div>
+            <div class="field"><span>department</span> <span class="type">VARCHAR(50)</span></div>
+            <div class="field"><span>salary</span> <span class="type">DECIMAL</span></div>
+        </div>
+        <!-- Таблица transactions -->
+        <div class="table-box">
+            <div class="tname">transactions</div>
+            <div class="field"><span class="pk">id</span> <span class="type">INT PK</span></div>
+            <div class="field"><span class="fk">user_id</span> <span class="type">INT → users.id</span></div>
+            <div class="field"><span>amount</span> <span class="type">DECIMAL</span></div>
+            <div class="field"><span>transaction_date</span> <span class="type">DATETIME</span></div>
+            <div class="field"><span>type</span> <span class="type">VARCHAR(20)</span></div>
+        </div>
+        <!-- Таблица user_events -->
+        <div class="table-box">
+            <div class="tname">user_events</div>
+            <div class="field"><span class="pk">id</span> <span class="type">INT PK</span></div>
+            <div class="field"><span class="fk">user_id</span> <span class="type">INT → users.id</span></div>
+            <div class="field"><span>event_time</span> <span class="type">DATETIME</span></div>
+            <div class="field"><span>event_type</span> <span class="type">VARCHAR(50)</span></div>
+        </div>
+        <!-- Таблица user_interests -->
+        <div class="table-box">
+            <div class="tname">user_interests</div>
+            <div class="field"><span class="fk">user_id</span> <span class="type">INT → users.id</span></div>
+            <div class="field"><span>category</span> <span class="type">VARCHAR(50)</span></div>
+        </div>
+    </div>
+    <!-- Подпись связей -->
+    <p style="font-size:0.9rem; opacity:0.7; margin-top:-10px; margin-bottom:20px;">
+        <span class="pk">PK</span> – первичный ключ, <span class="fk">FK</span> – внешний ключ (связь)
+    </p>
+
+    <!-- ======= SQL-СКРИПТ ======= -->
+    <h2>🔧 SQL-скрипт создания и заполнения</h2>
+    <button class="btn-collapse" id="toggleSql">Показать / скрыть код</button>
+    <div id="sqlCodeBlock" class="hidden-code">
+        <pre class="sql-block"><code>
+        -- Создание базы данных (если не существует)
+CREATE DATABASE IF NOT EXISTS test_finance;
+USE test_finance;
+
+-- -----------------------------------------------------
+-- Создание таблиц
+-- -----------------------------------------------------
+
+CREATE TABLE users (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    login VARCHAR(50) NOT NULL,
+    email VARCHAR(100),
+    full_name VARCHAR(100),
+    birth_date DATE,
+    registration_date DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE products (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL,
+    category VARCHAR(50),
+    price DECIMAL(10,2) NOT NULL
+);
+
+CREATE TABLE orders (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NULL,
+    order_date DATETIME,
+    total DECIMAL(10,2),
+    status VARCHAR(20),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE TABLE order_items (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    order_id INT NOT NULL,
+    product_id INT NOT NULL,
+    quantity INT NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(id)
+);
+
+CREATE TABLE employees (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100),
+    department VARCHAR(50),
+    salary DECIMAL(10,2)
+);
+
+CREATE TABLE transactions (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    amount DECIMAL(10,2),
+    transaction_date DATETIME,
+    type VARCHAR(20),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+CREATE TABLE user_events (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    event_time DATETIME,
+    event_type VARCHAR(50),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+CREATE TABLE user_interests (
+    user_id INT NOT NULL,
+    category VARCHAR(50),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+-- -----------------------------------------------------
+-- Заполнение данными (с помощью рекурсивных CTE в MySQL 8.0+)
+-- -----------------------------------------------------
+
+-- Генерация пользователей (100 записей)
+INSERT INTO users (login, email, full_name, birth_date, registration_date)
+WITH RECURSIVE nums AS (SELECT 1 AS n UNION ALL SELECT n+1 FROM nums WHERE n < 100)
+SELECT
+    CONCAT('user', FLOOR(RAND() * 30) + 1) AS login,  -- дубли логинов (около 30 уникальных)
+    CONCAT('user', FLOOR(RAND() * 100) + 1, '@example.com') AS email, -- могут быть дубли
+    CONCAT('Full Name ', FLOOR(RAND() * 1000)) AS full_name,
+    DATE_SUB(CURDATE(), INTERVAL (18 + FLOOR(RAND() * 50)) YEAR) AS birth_date,
+    DATE_SUB(NOW(), INTERVAL FLOOR(RAND() * 730) DAY) AS registration_date
+FROM nums;
+
+-- Генерация товаров (20 записей, некоторые с нулевой/отрицательной ценой)
+INSERT INTO products (name, category, price)
+VALUES
+    ('Ноутбук', 'Electronics', 800.00),
+    ('Смартфон', 'Electronics', 500.00),
+    ('Наушники', 'Electronics', 120.00),
+    ('Книга "SQL для чайников"', 'Books', 15.00),
+    ('Книга "Python для всех"', 'Books', 20.00),
+    ('Куртка', 'Clothing', 80.00),
+    ('Джинсы', 'Clothing', 60.00),
+    ('Кроссовки', 'Clothing', 100.00),
+    ('Холодильник', 'Appliances', 1000.00),
+    ('Микроволновка', 'Appliances', 200.00),
+    ('Кофеварка', 'Appliances', 150.00),
+    ('Пылесос', 'Appliances', 300.00),
+    ('Игрушка "Робот"', 'Toys', 40.00),
+    ('Пазл', 'Toys', 15.00),
+    ('Спортивный велосипед', 'Sports', 500.00),
+    ('Теннисная ракетка', 'Sports', 120.00),
+    ('Беговые лыжи', 'Sports', 250.00),
+    ('Чайный сервиз', 'Home', 70.00),
+    ('Сковорода', 'Home', 30.00),
+    ('Отрицательный товар', 'Test', -10.00);  -- некорректная цена
+
+-- Генерация заказов (100 записей)
+INSERT INTO orders (user_id, order_date, total, status)
+WITH RECURSIVE nums AS (SELECT 1 AS n UNION ALL SELECT n+1 FROM nums WHERE n < 100)
+SELECT
+    CASE WHEN RAND() < 0.1 THEN NULL ELSE FLOOR(RAND() * 100) + 1 END AS user_id, -- ~10% висяков
+    DATE_SUB(NOW(), INTERVAL FLOOR(RAND() * 365) DAY) AS order_date,
+    ROUND(RAND() * 1000, 2) * IF(RAND() < 0.05, -1, 1) AS total, -- 5% отрицательных
+    ELT(FLOOR(RAND() * 3) + 1, 'completed', 'pending', 'cancelled') AS status
+FROM nums;
+
+-- Генерация позиций заказов (100 записей)
+INSERT INTO order_items (order_id, product_id, quantity, price)
+WITH RECURSIVE nums AS (SELECT 1 AS n UNION ALL SELECT n+1 FROM nums WHERE n < 100)
+SELECT
+    FLOOR(RAND() * 100) + 1 AS order_id,
+    FLOOR(RAND() * 20) + 1 AS product_id,
+    FLOOR(RAND() * 5) + 1 AS quantity,
+    ROUND(RAND() * 500 + 5, 2) AS price -- произвольная цена, иногда не совпадает с product.price
+FROM nums;
+
+-- Генерация сотрудников (20 записей, с аномальными зарплатами)
+INSERT INTO employees (name, department, salary)
+VALUES
+    ('Иванов Иван', 'Sales', 50000.00),
+    ('Петров Петр', 'Sales', 55000.00),
+    ('Сидоров Сидор', 'Marketing', 48000.00),
+    ('Козлов Андрей', 'IT', 70000.00),
+    ('Михайлов Михаил', 'IT', 75000.00),
+    ('Федорова Анна', 'HR', 45000.00),
+    ('Соколова Елена', 'Sales', 52000.00),
+    ('Морозова Ольга', 'Marketing', 47000.00),
+    ('Новиков Дмитрий', 'IT', 80000.00),
+    ('Волкова Татьяна', 'Finance', 65000.00),
+    ('Алексеев Алексей', 'Finance', 62000.00),
+    ('Степанов Степан', 'Sales', 58000.00),
+    ('Егорова Екатерина', 'HR', 46000.00),
+    ('Смирнов Сергей', 'IT', 90000.00),  -- аномально высокая
+    ('Кузнецова Наталья', 'Marketing', 49000.00),
+    ('Белова Мария', 'Sales', 30000.00),  -- аномально низкая
+    ('Громов Илья', 'IT', 73000.00),
+    ('Орлова Ирина', 'Finance', 68000.00),
+    ('Зайцев Максим', 'Sales', 51000.00),
+    ('Лебедева Анастасия', 'Marketing', 50000.00);
+
+-- Генерация транзакций (100 записей, с отрицательными суммами для withdrawals)
+INSERT INTO transactions (user_id, amount, transaction_date, type)
+WITH RECURSIVE nums AS (SELECT 1 AS n UNION ALL SELECT n+1 FROM nums WHERE n < 100)
+SELECT
+    FLOOR(RAND() * 100) + 1 AS user_id,
+    ROUND(RAND() * 1000 - 200, 2) AS amount, -- диапазон -200..800
+    DATE_SUB(NOW(), INTERVAL FLOOR(RAND() * 90) DAY) AS transaction_date,
+    IF(RAND() < 0.3, 'withdrawal', 'payment') AS type
+FROM nums;
+
+-- Генерация событий пользователей (100 записей, для сессий и неактивности)
+INSERT INTO user_events (user_id, event_time, event_type)
+WITH RECURSIVE nums AS (SELECT 1 AS n UNION ALL SELECT n+1 FROM nums WHERE n < 100)
+SELECT
+    FLOOR(RAND() * 100) + 1 AS user_id,
+    DATE_SUB(NOW(), INTERVAL FLOOR(RAND() * 14) DAY) + INTERVAL FLOOR(RAND() * 24) HOUR + INTERVAL FLOOR(RAND() * 60) MINUTE AS event_time,
+    ELT(FLOOR(RAND() * 5) + 1, 'login', 'logout', 'view', 'add_to_cart', 'purchase') AS event_type
+FROM nums;
+
+-- Генерация интересов пользователей (для 50 пользователей, по 2-3 категории)
+INSERT INTO user_interests (user_id, category)
+WITH RECURSIVE nums AS (SELECT 1 AS n UNION ALL SELECT n+1 FROM nums WHERE n < 150) -- 150 записей
+SELECT
+    FLOOR(RAND() * 50) + 1 AS user_id, -- только первые 50 пользователей
+    ELT(FLOOR(RAND() * 5) + 1, 'Electronics', 'Books', 'Clothing', 'Sports', 'Home') AS category
+FROM nums
+LIMIT 150; -- у некоторых пользователей будет по 2-3 интереса
+
+-- -----------------------------------------------------
+-- Добавление дополнительных некорректных данных
+-- -----------------------------------------------------
+
+-- Добавим несколько заказов с некорректной суммой (отрицательной и нулевой)
+UPDATE orders SET total = -100.00 WHERE id = 5;
+UPDATE orders SET total = 0.00 WHERE id = 10;
+
+-- Добавим продукт с нулевой ценой
+INSERT INTO products (name, category, price) VALUES ('Бесплатный товар', 'Test', 0.00);
+
+-- Добавим сотрудника с очень высокой зарплатой
+INSERT INTO employees (name, department, salary) VALUES ('Супер-менеджер', 'Management', 500000.00);
+
+-- Добавим дубли логинов (уже есть, но можно усилить)
+INSERT INTO users (login, email, full_name, birth_date, registration_date)
+VALUES ('user1', 'duplicate1@example.com', 'Duplicate User 1', '1990-01-01', NOW()),
+       ('user1', 'duplicate2@example.com', 'Duplicate User 2', '1991-02-02', NOW());
+
+-- -----------------------------------------------------
+-- Проверка данных (опционально)
+-- -----------------------------------------------------
+SELECT COUNT(*) FROM users;   -- ~102
+SELECT COUNT(*) FROM orders;  -- 100
+SELECT COUNT(*) FROM products;-- 22
+SELECT COUNT(*) FROM order_items; -- 100
+SELECT COUNT(*) FROM employees; -- 21
+SELECT COUNT(*) FROM transactions; -- 100
+SELECT COUNT(*) FROM user_events; -- 100
+SELECT COUNT(*) FROM user_interests; -- ~150
+        </code></pre>
+    </div>
+
+    <!-- ======= ЗАДАНИЯ ======= -->
+    <h2>📋 Задания (30 шт.)</h2>
+    <p class="section-desc">Нажмите на задание, чтобы раскрыть решение.</p>
+    <div id="tasksContainer"></div>
+
+    <footer>База данных и задания подготовлены для учебных целей. MySQL 8.0+.</footer>
+</div>
+
+<!-- ===== СКРИПТ ДЛЯ ТЕМЫ (синхронное применение) ===== -->
+<script>
+    // Применяем тему сразу, до загрузки остального контента
+    (function() {
+        const saved = localStorage.getItem('theme');
+        if (saved === 'dark') {
+            document.body.classList.add('dark');
+        }
+    })();
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+
+        // ---- Переключение темы ----
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = document.getElementById('themeIcon');
+        const themeLabel = document.getElementById('themeLabel');
+
+        function setTheme(dark) {
+            document.body.classList.toggle('dark', dark);
+            themeIcon.textContent = dark ? '☀️' : '🌙';
+            themeLabel.textContent = dark ? 'Светлая' : 'Тёмная';
+            localStorage.setItem('theme', dark ? 'dark' : 'light');
+        }
+
+        // Загрузка сохранённой темы (дублируем, чтобы синхронизировать состояние кнопки)
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark') {
+            setTheme(true);
+        } else if (savedTheme === 'light') {
+            setTheme(false);
+        } else {
+            setTheme(false);
+        }
+
+        themeToggle.addEventListener('click', function() {
+            const isDark = document.body.classList.contains('dark');
+            setTheme(!isDark);
+        });
+
+        // ---- Массив заданий (30 шт.) ----
+        const tasks = [
+            { number: 1, title: 'Нахождение дубликатов по логину', desc: 'Найти всех пользователей с одинаковым логином. Вывести логин и количество раз.',
+                solution: 'SELECT login, COUNT(*) AS cnt\nFROM users\nGROUP BY login\nHAVING COUNT(*) > 1;' },
+            { number: 2, title: 'Удаление дубликатов (оставить одну запись)', desc: 'Удалить дубликаты пользователей, оставив только одну запись с наименьшим id. После удаления проверить, что дубликатов нет.',
+                solution: 'DELETE u1 FROM users u1\nJOIN users u2 ON u1.login = u2.login AND u1.id > u2.id;\n\n-- Проверка:\nSELECT login, COUNT(*) FROM users GROUP BY login HAVING COUNT(*) > 1;' },
+            { number: 3, title: 'Клиенты без заказов', desc: 'Вывести пользователей, у которых нет ни одного заказа.',
+                solution: 'SELECT u.id, u.login, u.full_name\nFROM users u\nLEFT JOIN orders o ON u.id = o.user_id\nWHERE o.id IS NULL;' },
+            { number: 4, title: 'Сотрудники с зарплатой выше средней', desc: 'Найти сотрудников, чья зарплата превышает среднюю зарплату по всем сотрудникам.',
+                solution: 'SELECT *\nFROM employees\nWHERE salary > (SELECT AVG(salary) FROM employees);' },
+            { number: 5, title: 'Топ-5 самых дорогих товаров', desc: 'Вывести 5 товаров с наибольшей ценой.',
+                solution: 'SELECT id, name, price\nFROM products\nORDER BY price DESC\nLIMIT 5;' },
+            { number: 6, title: 'Товары, приносящие больше всего денег', desc: 'Рассчитать общую выручку по каждому товару (сумма quantity * price из order_items) и вывести топ-3 товара по выручке.',
+                solution: 'SELECT p.id, p.name, SUM(oi.quantity * oi.price) AS total_revenue\nFROM order_items oi\nJOIN products p ON oi.product_id = p.id\nGROUP BY p.id, p.name\nORDER BY total_revenue DESC\nLIMIT 3;' },
+            { number: 7, title: 'Сегментация клиентов по частоте покупок', desc: 'Сгруппировать пользователей по количеству заказов: «Редкие» (1), «Средние» (2–3), «Активные» (>=4). Вывести количество пользователей в каждой группе.',
+                solution: 'WITH freq AS (\n    SELECT user_id, COUNT(*) AS order_count\n    FROM orders\n    WHERE user_id IS NOT NULL\n    GROUP BY user_id\n)\nSELECT\n    CASE\n        WHEN order_count = 1 THEN \'Редкие\'\n        WHEN order_count BETWEEN 2 AND 3 THEN \'Средние\'\n        ELSE \'Активные\'\n    END AS segment,\n    COUNT(*) AS user_count\nFROM freq\nGROUP BY segment;' },
+            { number: 8, title: 'Поиск клиентов с пересечением интересов', desc: 'Найти пары пользователей, у которых есть общая категория интересов (из user_interests). Исключить пары с самим собой.',
+                solution: 'SELECT DISTINCT\n    LEAST(ui1.user_id, ui2.user_id) AS user1,\n    GREATEST(ui1.user_id, ui2.user_id) AS user2,\n    ui1.category\nFROM user_interests ui1\nJOIN user_interests ui2 ON ui1.category = ui2.category AND ui1.user_id < ui2.user_id\nORDER BY user1, user2;' },
+            { number: 9, title: 'Продажи по месяцам', desc: 'Посчитать общую сумму заказов (total) по месяцам за последний год. Вывести месяц и сумму.',
+                solution: 'SELECT\n    DATE_FORMAT(order_date, \'%Y-%m\') AS month,\n    SUM(total) AS total_sales\nFROM orders\nWHERE order_date >= DATE_SUB(CURDATE(), INTERVAL 1 YEAR)\nGROUP BY month\nORDER BY month;' },
+            { number: 10, title: 'Сессии пользователей (разрыв > 30 мин)', desc: 'Для каждого пользователя разбить события на сессии. Новая сессия начинается, если разрыв > 30 минут. Вывести для каждой сессии: пользователь, начало, конец, количество событий.',
+                solution: 'WITH events_with_lag AS (\n    SELECT\n        user_id,\n        event_time,\n        LAG(event_time) OVER (PARTITION BY user_id ORDER BY event_time) AS prev_time\n    FROM user_events\n),\nsession_flags AS (\n    SELECT\n        *,\n        CASE\n            WHEN prev_time IS NULL OR TIMESTAMPDIFF(MINUTE, prev_time, event_time) > 30\n            THEN 1 ELSE 0\n        END AS new_session\n    FROM events_with_lag\n),\nsession_groups AS (\n    SELECT\n        *,\n        SUM(new_session) OVER (PARTITION BY user_id ORDER BY event_time ROWS UNBOUNDED PRECEDING) AS session_id\n    FROM session_flags\n)\nSELECT\n    user_id,\n    session_id,\n    MIN(event_time) AS session_start,\n    MAX(event_time) AS session_end,\n    COUNT(*) AS event_count\nFROM session_groups\nGROUP BY user_id, session_id\nORDER BY user_id, session_start;' },
+            { number: 11, title: 'Агрегации по интервалам (неделям)', desc: 'Рассчитать среднюю сумму заказов по неделям за последние 3 месяца. Вывести неделю (первый день недели) и среднюю сумму.',
+                solution: 'SELECT\n    DATE_SUB(order_date, INTERVAL WEEKDAY(order_date) DAY) AS week_start,\n    AVG(total) AS avg_total\nFROM orders\nWHERE order_date >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)\nGROUP BY week_start\nORDER BY week_start;' },
+            { number: 12, title: 'Поиск аномалий по статистике окон (отклонение от среднего за 7 дней)', desc: 'Найти дни, когда общая сумма заказов в день отклоняется от среднего за предыдущие 7 дней более чем на 2 стандартных отклонения.',
+                solution: 'WITH daily_sales AS (\n    SELECT DATE(order_date) AS sale_date, SUM(total) AS daily_total\n    FROM orders\n    GROUP BY DATE(order_date)\n),\nrolling_stats AS (\n    SELECT\n        sale_date,\n        daily_total,\n        AVG(daily_total) OVER (ORDER BY sale_date ROWS BETWEEN 7 PRECEDING AND 1 PRECEDING) AS avg_prev_7,\n        STDDEV(daily_total) OVER (ORDER BY sale_date ROWS BETWEEN 7 PRECEDING AND 1 PRECEDING) AS std_prev_7\n    FROM daily_sales\n)\nSELECT sale_date, daily_total, avg_prev_7\nFROM rolling_stats\nWHERE std_prev_7 IS NOT NULL\n  AND ABS(daily_total - avg_prev_7) > 2 * std_prev_7;' },
+            { number: 13, title: 'Поиск первой строки в группе (первый заказ пользователя)', desc: 'Для каждого пользователя найти его самый первый заказ (по дате) без использования GROUP BY. Использовать оконную функцию.',
+                solution: 'WITH first_orders AS (\n    SELECT\n        *,\n        ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY order_date) AS rn\n    FROM orders\n    WHERE user_id IS NOT NULL\n)\nSELECT id, user_id, order_date, total, status\nFROM first_orders\nWHERE rn = 1;' },
+            { number: 14, title: 'Поиск «висячих» записей (заказы без пользователей)', desc: 'Найти заказы, у которых user_id не существует в таблице users (или равен NULL).',
+                solution: 'SELECT o.*\nFROM orders o\nLEFT JOIN users u ON o.user_id = u.id\nWHERE o.user_id IS NULL OR u.id IS NULL;' },
+            { number: 15, title: 'Обнаружение аномалий в числовых данных (скачки транзакций)', desc: 'В таблице transactions найти транзакции, где сумма отличается от предыдущей транзакции того же пользователя более чем на 500 (по модулю).',
+                solution: 'WITH trans_with_lag AS (\n    SELECT\n        user_id,\n        transaction_date,\n        amount,\n        LAG(amount) OVER (PARTITION BY user_id ORDER BY transaction_date) AS prev_amount\n    FROM transactions\n)\nSELECT user_id, transaction_date, amount, prev_amount,\n       ABS(amount - prev_amount) AS diff\nFROM trans_with_lag\nWHERE prev_amount IS NOT NULL\n  AND ABS(amount - prev_amount) > 500;' },
+            { number: 16, title: 'Z-score для транзакций', desc: 'Для каждого пользователя рассчитать z-score для суммы транзакций и найти транзакции с |z-score| > 3 (аномальные).',
+                solution: 'WITH stats AS (\n    SELECT\n        user_id,\n        amount,\n        AVG(amount) OVER (PARTITION BY user_id) AS avg_amt,\n        STDDEV(amount) OVER (PARTITION BY user_id) AS std_amt\n    FROM transactions\n)\nSELECT user_id, amount, avg_amt, std_amt,\n       (amount - avg_amt) / NULLIF(std_amt, 0) AS z_score\nFROM stats\nWHERE ABS((amount - avg_amt) / NULLIF(std_amt, 0)) > 3;' },
+            { number: 17, title: 'Перцентиль (транзакции выше 99-го перцентиля)', desc: 'Найти транзакции, сумма которых превышает 99-й перцентиль всех транзакций.',
+                solution: '-- MySQL 8.0+: используем PERCENT_RANK для нахождения порога\nWITH ranked AS (\n    SELECT\n        amount,\n        PERCENT_RANK() OVER (ORDER BY amount) AS pct_rank\n    FROM transactions\n)\nSELECT amount\nFROM ranked\nWHERE pct_rank >= 0.99;\n\n-- Альтернатива (OFFSET):\nSELECT amount\nFROM transactions\nORDER BY amount\nLIMIT 1 OFFSET (SELECT CEIL(0.99 * COUNT(*)) - 1 FROM transactions);' },
+            { number: 18, title: 'Выявление неактивности (перерывы > 5 дней)', desc: 'Найти периоды, когда пользователь не совершал событий более 5 дней. Использовать LAG.',
+                solution: 'WITH events_with_lag AS (\n    SELECT\n        user_id,\n        event_time,\n        LAG(event_time) OVER (PARTITION BY user_id ORDER BY event_time) AS prev_time\n    FROM user_events\n),\ngaps AS (\n    SELECT\n        user_id,\n        prev_time AS gap_start,\n        event_time AS gap_end,\n        TIMESTAMPDIFF(DAY, prev_time, event_time) AS gap_days\n    FROM events_with_lag\n    WHERE prev_time IS NOT NULL\n      AND TIMESTAMPDIFF(DAY, prev_time, event_time) > 5\n)\nSELECT user_id, gap_start, gap_end, gap_days\nFROM gaps\nORDER BY user_id, gap_start;' },
+            // 19–30 (дополнительные)
+            { number: 19, title: 'Исправление отрицательных сумм заказов', desc: 'Заменить все отрицательные значения total в таблице orders на их абсолютное значение.',
+                solution: 'UPDATE orders SET total = ABS(total) WHERE total < 0;' },
+            { number: 20, title: 'Заполнение пропусков user_id в заказах (установка значения по умолчанию)', desc: 'Для заказов без user_id установить значение по умолчанию = 1 (первый пользователь).',
+                solution: 'UPDATE orders SET user_id = 1 WHERE user_id IS NULL;' },
+            { number: 21, title: 'Несовпадение цен в order_items и products', desc: 'Найти позиции заказов, где цена в order_items отличается от актуальной цены товара в products более чем на 20%.',
+                solution: 'SELECT oi.id, oi.order_id, oi.product_id, oi.price AS order_price, p.price AS product_price,\n       ABS(oi.price - p.price) / p.price * 100 AS diff_percent\nFROM order_items oi\nJOIN products p ON oi.product_id = p.id\nWHERE ABS(oi.price - p.price) / p.price > 0.2;' },
+            { number: 22, title: 'Проверка суммы заказа (total vs сумма позиций)', desc: 'Вывести заказы, где total не равен сумме quantity * price из order_items (допуск ±0.01).',
+                solution: 'WITH order_sums AS (\n    SELECT order_id, SUM(quantity * price) AS calculated_total\n    FROM order_items\n    GROUP BY order_id\n)\nSELECT o.id, o.total, os.calculated_total\nFROM orders o\nJOIN order_sums os ON o.id = os.order_id\nWHERE ABS(o.total - os.calculated_total) > 0.01;' },
+            { number: 23, title: 'Поиск полных дубликатов в order_items', desc: 'Найти полностью идентичные строки в таблице order_items (все поля, кроме id).',
+                solution: 'SELECT order_id, product_id, quantity, price, COUNT(*) AS cnt\nFROM order_items\nGROUP BY order_id, product_id, quantity, price\nHAVING COUNT(*) > 1;' },
+            { number: 24, title: 'Очистка email (приведение к нижнему регистру)', desc: 'Обновить все email в таблице users, приведя их к нижнему регистру (использовать LOWER).',
+                solution: 'UPDATE users SET email = LOWER(email);' },
+            { number: 25, title: 'Валидация дат рождения', desc: 'Найти пользователей, у которых дата рождения в будущем (birth_date > CURDATE()) и установить её в NULL.',
+                solution: 'UPDATE users SET birth_date = NULL WHERE birth_date > CURDATE();' },
+            { number: 26, title: 'Скользящее среднее заказов за 7 дней (без аномалий)', desc: 'Вывести дату, сумму заказов за день и скользящее среднее за предыдущие 7 дней (включительно с текущим днём).',
+                solution: 'WITH daily AS (\n    SELECT DATE(order_date) AS day, SUM(total) AS daily_total\n    FROM orders\n    GROUP BY DATE(order_date)\n)\nSELECT day, daily_total,\n       AVG(daily_total) OVER (ORDER BY day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS moving_avg_7\nFROM daily;' },
+            { number: 27, title: 'Топ-3 категории по выручке', desc: 'Вывести три категории товаров с наибольшей общей выручкой (сумма quantity * price из order_items).',
+                solution: 'SELECT p.category, SUM(oi.quantity * oi.price) AS revenue\nFROM order_items oi\nJOIN products p ON oi.product_id = p.id\nGROUP BY p.category\nORDER BY revenue DESC\nLIMIT 3;' },
+            { number: 28, title: 'RFM-анализ пользователей', desc: 'Присвоить каждому пользователю баллы по давности (Recency), частоте (Frequency) и сумме (Monetary) заказов. Сегментировать на 3 группы (например, высокий/средний/низкий).',
+                solution: '-- Пример: разбиваем каждую метрику на 3 квартиля и суммируем\nWITH rfm_raw AS (\n    SELECT \n        u.id,\n        DATEDIFF(CURDATE(), MAX(o.order_date)) AS recency,\n        COUNT(o.id) AS frequency,\n        COALESCE(SUM(o.total), 0) AS monetary\n    FROM users u\n    LEFT JOIN orders o ON u.id = o.user_id\n    GROUP BY u.id\n),\nrfm_scores AS (\n    SELECT *,\n        NTILE(3) OVER (ORDER BY recency DESC) AS r_score,\n        NTILE(3) OVER (ORDER BY frequency) AS f_score,\n        NTILE(3) OVER (ORDER BY monetary) AS m_score\n    FROM rfm_raw\n)\nSELECT id, recency, frequency, monetary,\n       (r_score + f_score + m_score) AS rfm_total,\n       CASE\n           WHEN (r_score + f_score + m_score) >= 8 THEN \'High\'\n           WHEN (r_score + f_score + m_score) BETWEEN 5 AND 7 THEN \'Medium\'\n           ELSE \'Low\'\n       END AS segment\nFROM rfm_scores;' },
+            { number: 29, title: 'Извлечение домена из email и группировка по доменам', desc: 'Вывести количество пользователей для каждого домена почты (например, gmail.com, yandex.ru).',
+                solution: 'SELECT SUBSTRING_INDEX(email, \'@\', -1) AS domain, COUNT(*) AS user_count\nFROM users\nWHERE email IS NOT NULL\nGROUP BY domain\nORDER BY user_count DESC;' },
+            { number: 30, title: 'Поиск некорректных email', desc: 'Найти записи с email, не содержащим \'@\' или точки в домене.',
+                solution: 'SELECT *\nFROM users\nWHERE email IS NOT NULL\n  AND (email NOT LIKE \'%@%\' OR SUBSTRING_INDEX(email, \'@\', -1) NOT LIKE \'%.%\');' }
+        ];
+
+        // ---- Генерация карточек заданий ----
+        const container = document.getElementById('tasksContainer');
+        if (!container) {
+            console.error('Контейнер #tasksContainer не найден!');
+            return;
+        }
+        tasks.forEach(task => {
+            const card = document.createElement('div');
+            card.className = 'task-card';
+            const safeSolution = task.solution.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            card.innerHTML = `
+                <div class="task-header">
+                    <div class="task-title">
+                        <span class="task-number">${task.number}</span>
+                        <span>${task.title}</span>
+                    </div>
+                    <button class="toggle-btn" data-target="sol${task.number}">Показать решение</button>
+                </div>
+                <div class="task-desc">${task.desc}</div>
+                <div id="sol${task.number}" class="task-solution">
+                    <pre><code>${safeSolution}</code></pre>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+
+        // ---- Обработка кликов по карточкам ----
+        document.querySelectorAll('.task-card').forEach(card => {
+            const btn = card.querySelector('.toggle-btn');
+            const solutionDiv = card.querySelector('.task-solution');
+            if (!btn || !solutionDiv) return;
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const isOpen = solutionDiv.classList.toggle('open');
+                this.textContent = isOpen ? 'Скрыть решение' : 'Показать решение';
+                this.classList.toggle('open', isOpen);
+            });
+            card.addEventListener('click', function(e) {
+                if (e.target === btn || e.target.closest('.toggle-btn')) return;
+                btn.click();
+            });
+        });
+
+        // ---- Toggle SQL-кода ----
+        const toggleSqlBtn = document.getElementById('toggleSql');
+        const sqlBlock = document.getElementById('sqlCodeBlock');
+        if (toggleSqlBtn && sqlBlock) {
+            toggleSqlBtn.addEventListener('click', function() {
+                sqlBlock.classList.toggle('open');
+                this.textContent = sqlBlock.classList.contains('open') ? 'Скрыть код' : 'Показать / скрыть код';
+            });
+        } else {
+            console.warn('Кнопка или блок SQL не найдены');
+        }
+    });
+</script>
+</body>
+</html>
