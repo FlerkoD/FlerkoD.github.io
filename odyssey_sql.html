@@ -161,7 +161,7 @@
             filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
         }
 
-        .ship {
+        /*.ship {
             position: absolute;
             top: 50%;
             transform: translate(-50%, -50%);
@@ -174,11 +174,39 @@
             z-index: 2;
             pointer-events: none;
             /* font-size убираем, т.к. теперь это фон */
+        /*}*/
+
+       /* .progress-container .ship .hull { display: inline-block; animation: bob 3.4s ease-in-out infinite; }
+        @keyframes bob { 0%,100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-3px) rotate(3deg); } }
+*/
+
+        .progress-container .ship {
+            position: absolute;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 150px;
+            height: 150px;
+            left: 0%;
+            z-index: 2;
+            pointer-events: none;
+            transition: left 0.8s ease;
+            /* никакого фона и font-size здесь */
         }
 
-        .progress-container .ship .hull { display: inline-block; animation: bob 3.4s ease-in-out infinite; }
-        @keyframes bob { 0%,100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-3px) rotate(3deg); } }
+        /* Сюда переехала картинка и анимация */
+        .progress-container .ship .hull {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background: url('https://png.pngtree.com/png-clipart/20230810/original/pngtree-illustrative-vector-of-a-large-argo-boat-on-a-white-background-vector-picture-image_10275593.png') no-repeat center / contain;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+            animation: bob 3.4s ease-in-out infinite;
+        }
 
+        @keyframes bob {
+            0%, 100% { transform: translateY(0) rotate(-3deg); }
+            50%      { transform: translateY(-3px) rotate(3deg); }
+        }
         .chapters { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 6px; }
         .chapter {
             font-size: .76rem; padding: 3px 10px; border-radius: 20px;
@@ -465,7 +493,7 @@ details.table-details:hover { background: var(--toggle-bg); }
     <div class="chapters" id="chapters"></div>
     <div class="progress-container" id="progressContainer" role="progressbar" aria-valuemin="0" aria-valuemax="37" aria-valuenow="0">
         <div class="wave-fill" id="progressFill"></div>
-        <div class="ship" id="ship"><span class="hull">⛵</span></div>
+        <div class="ship" id="ship"><span class="hull"></span></div>
     </div>
     <div class="voyage" id="voyage"></div>
 
