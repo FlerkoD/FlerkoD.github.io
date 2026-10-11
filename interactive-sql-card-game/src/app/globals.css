@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+@theme {
+  /* Latin faces first; Cyrillic glyphs fall through to Manrope / PT Serif */
+  --font-display: "Space Grotesk", "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-serif: "Instrument Serif", "PT Serif", Georgia, "Times New Roman", serif;
+}
+
+html {
+  background: #131619;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: #131619;
+  color: #8c9aa5;
+  font-family: var(--font-display);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior: none;
+}
+
+::selection {
+  background: #ffb627;
+  color: #131619;
+}
+
+button {
+  font-family: inherit;
+}
+
+input {
+  border-radius: 2px;
+}
+
+/* console scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #3c454e #0e1114;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: #0e1114;
+}
+*::-webkit-scrollbar-thumb {
+  background: #3c454e;
+  border: 2px solid #0e1114;
+  border-radius: 6px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: #ffb627;
+}
+
+#shake-root {
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

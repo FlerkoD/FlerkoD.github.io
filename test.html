@@ -1,0 +1,287 @@
+ // ---- Определение испытаний ----
+        function getChallenges() {
+            return [
+               {
+                    id: 1,
+                    title: '🌊 Создание команды',
+                    story: 'Одиссей собирает команду для плавания. Нужно создать таблицу "sailors", чтобы записывать имена и роли.',
+                    task: 'Создайте таблицу "sailors" с колонками: id (INTEGER PRIMARY KEY), name (TEXT), role (TEXT).',
+                    hint: 'CREATE TABLE sailors (id INTEGER PRIMARY KEY, name TEXT, role TEXT);',
+                    validate: (db) => {
+                        try {
+                            // Проверяем, что таблица существует
+                            const tables = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='sailors'");
+                            if (tables.length === 0 || tables[0].values.length === 0) {
+                                return { success: false, message: '❌ Таблица "sailors" не найдена. Создай её с тремя колонками: id, name, role.' };
+                            }
+                            // Проверяем структуру таблицы (колонки)
+                            const columns = db.exec("PRAGMA table_info(sailors)");
+                            if (columns.length === 0) {
+                                return { success: false, message: '❌ Не удалось получить информацию о колонках.' };
+                            }
+                            const colNames = columns[0].values.map(row => row[1]); // row[1] = имя колонки
+                            const expected = ['id', 'name', 'role'];
+                            const hasExtra = colNames.some(col => !expected.includes(col));
+                            const hasMissing = expected.some(col => !colNames.includes(col));
+                            if (hasExtra || hasMissing) {
+                                return { success: false, message: `❌ Таблица должна содержать ровно три колонки: id, name, role. Сейчас: ${colNames.join(', ')}` };
+                            }
+                            return { success: true, message: '✅ Таблица "sailors" создана корректно!' };
+                        } catch(e) {
+                            return { success: false, message: `❌ Ошибка проверки: ${e.message}` };
+                        }
+                    }
+                },
+                {
+                    id: 2,
+                    title: '🏺 Добавление колонки',
+                    story: 'Одиссей решил добавить в таблицу sailors колонку "experience" для опыта.',
+                    task: 'Добавьте колонку experience INTEGER DEFAULT 0 в таблицу sailors.',
+                    hint: 'ALTER TABLE sailors ADD COLUMN experience INTEGER DEFAULT 0;',
+                    validate: (db) => {
+                        try {
+                            const columns = db.exec("PRAGMA table_info(sailors)");
+                            const colNames = columns[0].values.map(row => row[1]);
+                            if (colNames.includes('experience')) {
+                                return { success: true, message: '✅ Колонка experience добавлена!' };
+                            } else {
+                                return { success: false, message: '❌ Колонка experience не найдена. Проверь запрос.' };
+                            }
+                        } catch(e) {
+                            return { success: false, message: '❌ Таблица sailors не существует или ошибка.' };
+                        }
+                    }
+                },
+               {
+                    id: 3,
+                    title: '📜 Запись героев',
+                    story: 'Одиссей, Пенелопа, Телемах и другие должны быть добавлены в таблицу.',
+                    task: 'Вставьте в таблицу "sailors" хотя бы трёх героев: Одиссей (капитан), Пенелопа (царица), Телемах (воин). Можно добавить и других.',
+                    hint: 'INSERT INTO sailors (id, name, role) VALUES (1, "Одиссей", "капитан"), (2, "Пенелопа", "царица"), (3, "Телемах", "воин");',
+                    validate: (db) => {
+                        try {
+                            // Проверяем, что таблица существует
+                            const tables = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='sailors'");
+                            if (tables.length === 0 || tables[0].values.length === 0) {
+                                return { success: false, message: '❌ Таблица "sailors" не существует. Сначала выполни задание 1.' };
+                            }
+                            // Считаем записи
+                            const res = db.exec("SELECT COUNT(*) as cnt FROM sailors");
+                            const count = res[0].values[0][0];
+                            if (count >= 3) {
+                                return { success: true, message: `✅ В таблице ${count} героев. Отлично!` };
+                            } else {
+                                // Проверяем, был ли выполнен INSERT (проверяем наличие любых записей, но если их 0 – значит, INSERT не сработал)
+                                if (count === 0) {
+                                    return { success: false, message: '❌ В таблице нет записей. Используй INSERT INTO sailors ... для добавления героев.' };
+                                } else {
+                                    return { success: false, message: `❌ Мало записей (${count}). Нужно минимум 3. Добавь ещё героев через INSERT.` };
+                                }
+                            }
+                        } catch(e) {
+                            return { success: false, message: `❌ Ошибка: ${e.message}` };
+                        }
+                    }
+                },
+                {
+                    id: 4,
+                    title: '📊 Команда Одиссея (все записи)',
+                    story: 'Одиссей хочет увидеть всю свою команду. Выведи все записи из таблицы sailors.',
+                    task: 'Напишите SELECT запрос, который выводит все колонки из таблицы sailors.',
+                    hint: 'SELECT * FROM sailors;',
+                    validate: (db, result) => {
+                        if (result && result.length > 0 && result[0].values.length > 0) {
+                            return { success: true, message: `✅ Найдено ${result[0].values.length} записей.` };
+                        } else {
+                            return { success: false, message: '❌ Таблица sailors пуста или не существует.' };
+                        }
+                    }
+                },
+                {
+                    id: 5,
+                    title: '🔍 Кто есть кто?',
+                    story: 'Одиссей хочет знать, кто из команды не капитан. Найди всех, кроме него.',
+                    task: 'Выберите имена всех моряков, у которых роль не "капитан".',
+                    hint: 'SELECT name FROM sailors WHERE role != "капитан";',
+                    validate: (db) => {
+                        try {
+                            const res = db.exec("SELECT name FROM sailors WHERE role != 'капитан'");
+                            if (res.length > 0 && res[0].values.length > 0) {
+                                const names = res[0].values.map(row => row[0]).join(', ');
+                                return { success: true, message: `✅ Найдены: ${names}` };
+                            } else return { success: false, message: '❌ Не найдено ни одного моряка, кроме капитана. Проверь условие.' };
+                        } catch(e) { return { success: false, message: '❌ Ошибка запроса. Проверь синтаксис.' }; }
+                    }
+                },
+                {
+                    id: 6,
+                    title: '🐴 Троянский конь',
+                    story: 'Одиссей придумал хитрость — огромного деревянного коня. Нужно создать таблицу "trojan_horse", чтобы хранить детали.',
+                    task: 'Создайте таблицу "trojan_horse" с колонками: id INTEGER PRIMARY KEY, name TEXT, material TEXT, size INTEGER.',
+                    hint: 'CREATE TABLE trojan_horse (id INTEGER PRIMARY KEY, name TEXT, material TEXT, size INTEGER);',
+                    validate: (db) => {
+                        try {
+                            const tables = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='trojan_horse'");
+                            if (tables.length === 0 || tables[0].values.length === 0) {
+                                return { success: false, message: '❌ Таблица "trojan_horse" не найдена.' };
+                            }
+                            const cols = db.exec("PRAGMA table_info(trojan_horse)");
+                            const names = cols[0].values.map(row => row[1]);
+                            const expected = ['id', 'name', 'material', 'size'];
+                            if (expected.every(c => names.includes(c)) && names.length === 4) {
+                                return { success: true, message: '✅ Таблица "trojan_horse" создана!' };
+                            } else {
+                                return { success: false, message: `❌ Колонки должны быть: id, name, material, size. Сейчас: ${names.join(', ')}` };
+                            }
+                        } catch(e) {
+                            return { success: false, message: '❌ Ошибка: ' + e.message };
+                        }
+                    }
+                },
+                {
+                    id: 7,
+                    title: '📦 Загрузка коня',
+                    story: 'Внутрь коня положили воинов. Добавьте записи о коне и воинах в таблицу.',
+                    task: 'Вставьте в таблицу "trojan_horse" 3 записи: "Деревянный конь", материал "дуб", размер 30; "Серебряный конь", "серебро", 20; "Малый конь", "сосна", 15.',
+                    hint: 'INSERT INTO trojan_horse (id, name, material, size) VALUES (1, "Деревянный конь", "дуб", 30), (2, "Серебряный конь", "серебро", 20), (3, "Малый конь", "сосна", 15);',
+                    validate: (db) => {
+                        try {
+                            const res = db.exec("SELECT COUNT(*) FROM trojan_horse");
+                            const count = res[0].values[0][0];
+                            if (count >= 3) {
+                                return { success: true, message: `✅ В таблице ${count} записей. Конь готов!` };
+                            } else {
+                                return { success: false, message: `❌ Мало записей (${count}). Нужно минимум 3.` };
+                            }
+                        } catch(e) {
+                            return { success: false, message: '❌ Таблица не существует. Сначала выполни задание 11.' };
+                        }
+                    }
+                },
+                 {
+                    id: 8,
+                    title: '🔗 Связь с троянским конём',
+                    story: 'Одиссей хочет увидеть все детали коня и их размеры. Выведи все записи из таблицы trojan_horse.',
+                    task: 'Напишите SELECT запрос, который выводит все данные из таблицы trojan_horse.',
+                    hint: 'SELECT * FROM trojan_horse;',
+                    validate: (db, result) => {
+                        if (result && result.length > 0 && result[0].values.length > 0) {
+                            return { success: true, message: `✅ Найдено ${result[0].values.length} записей о коне.` };
+                        } else {
+                            return { success: false, message: '❌ Таблица trojan_horse пуста или не существует.' };
+                        }
+                    }
+                },
+                {
+                    id: 9,
+                    title: '🌊 Сцилла и Харибда',
+                    story: 'Одиссей выбирает путь между двумя чудовищами. Создайте таблицу "routes" с опасностями.',
+                    task: 'Создайте таблицу "routes" с колонками: id INTEGER PRIMARY KEY, name TEXT, danger_level INTEGER, description TEXT.',
+                    hint: 'CREATE TABLE routes (id INTEGER PRIMARY KEY, name TEXT, danger_level INTEGER, description TEXT);',
+                    validate: (db) => {
+                        try {
+                            const tables = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='routes'");
+                            if (tables.length === 0 || tables[0].values.length === 0) {
+                                return { success: false, message: '❌ Таблица "routes" не найдена.' };
+                            }
+                            const cols = db.exec("PRAGMA table_info(routes)");
+                            const names = cols[0].values.map(row => row[1]);
+                            const expected = ['id', 'name', 'danger_level', 'description'];
+                            if (expected.every(c => names.includes(c)) && names.length === 4) {
+                                return { success: true, message: '✅ Таблица "routes" создана!' };
+                            } else {
+                                return { success: false, message: `❌ Нужны колонки: id, name, danger_level, description. Сейчас: ${names.join(', ')}` };
+                            }
+                        } catch(e) {
+                            return { success: false, message: '❌ Ошибка: ' + e.message };
+                        }
+                    }
+                },
+                {
+                    id: 10,
+                    title: '⚖️ Выбор пути',
+                    story: 'Вставьте два маршрута: "Сцилла" (опасность 9, "Шесть голов"), "Харибда" (опасность 10, "Водоворот").',
+                    task: 'Вставьте в таблицу "routes" записи о Сцилле и Харибде.',
+                    hint: 'INSERT INTO routes (id, name, danger_level, description) VALUES (1, "Сцилла", 9, "Шесть голов"), (2, "Харибда", 10, "Водоворот");',
+                    validate: (db) => {
+                        try {
+                            const res = db.exec("SELECT COUNT(*) FROM routes");
+                            const count = res[0].values[0][0];
+                            if (count >= 2) {
+                                // Проверим, что есть записи с нужными именами
+                                const names = db.exec("SELECT name FROM routes");
+                                const allNames = names[0].values.map(r => r[0]);
+                                if (allNames.includes('Сцилла') && allNames.includes('Харибда')) {
+                                    return { success: true, message: '✅ Маршруты добавлены! Одиссей выбрал Сциллу (меньшая опасность).' };
+                                } else {
+                                    return { success: false, message: '❌ Не найдены оба маршрута. Проверь INSERT.' };
+                                }
+                            } else {
+                                return { success: false, message: `❌ Мало записей (${count}). Нужно 2.` };
+                            }
+                        } catch(e) {
+                            return { success: false, message: '❌ Ошибка: ' + e.message };
+                        }
+                    }
+                },
+                {
+                    id: 11,
+                    title: '📉 Опасный маршрут',
+                    story: 'Одиссей выбирает между Сциллой и Харибдой. Найди маршрут с опасностью менее 10.',
+                    task: 'Напишите запрос, который выводит название маршрута (name) и опасность (danger_level) для маршрутов с опасностью меньше 10.',
+                    hint: 'SELECT name, danger_level FROM routes WHERE danger_level < 10;',
+                    validate: (db, result) => {
+                        if (result && result.length > 0 && result[0].values.length > 0) {
+                            const rows = result[0].values.map(r => `${r[0]} (${r[1]})`).join(', ');
+                            return { success: true, message: `✅ Найдены: ${rows}` };
+                        } else {
+                            return { success: false, message: '❌ Нет маршрутов с опасностью < 10. Возможно, ты не добавил данные.' };
+                        }
+                    }
+                },
+                {
+                    id: 12,
+                    title: '⚔️ Сражение с циклопом',
+                    story: 'Одиссей победил циклопа Полифема. Нужно обновить роль Одиссея на "герой".',
+                    task: 'Обновите роль Одиссея на "герой".',
+                    hint: 'UPDATE sailors SET role = "герой" WHERE name = "Одиссей";',
+                    validate: (db) => {
+                        try {
+                            const res = db.exec("SELECT role FROM sailors WHERE name = 'Одиссей'");
+                            if (res.length > 0 && res[0].values.length > 0) {
+                                const role = res[0].values[0][0];
+                                if (role === 'герой') return { success: true, message: '✅ Одиссей теперь герой!' };
+                                else return { success: false, message: `❌ Роль "${role}" не соответствует "герой".` };
+                            } else return { success: false, message: '❌ Одиссей не найден.' };
+                        } catch(e) { return { success: false, message: '❌ Ошибка запроса.' }; }
+                    }
+                },
+                {
+                    id: 13,
+                    title: '🧩 Встреча с сиренами',
+                    story: 'Сирены завлекают моряков. Нужно создать таблицу "sirens" с песнями.',
+                    task: 'Создайте таблицу "sirens" с колонками: id INTEGER PRIMARY KEY, song TEXT, danger_level INTEGER.',
+                    hint: 'CREATE TABLE sirens (id INTEGER PRIMARY KEY, song TEXT, danger_level INTEGER);',
+                    validate: (db) => {
+                        try { db.exec("SELECT * FROM sirens LIMIT 1"); return { success: true, message: '✅ Таблица "sirens" создана!' }; } 
+                        catch(e) { return { success: false, message: '❌ Таблица не найдена. Попробуй ещё раз.' }; }
+                    }
+                },
+                {
+                    id: 14,
+                    title: '🏆 Финал: Возвращение домой',
+                    story: 'Одиссей вернулся на Итаку. Нужно выбрать всех героев и их роли, отсортированных по имени.',
+                    task: 'Напишите запрос, который выводит всех моряков (name, role) из таблицы sailors, отсортированных по имени (ASC).',
+                    hint: 'SELECT name, role FROM sailors ORDER BY name ASC;',
+                    validate: (db) => {
+                        try {
+                            const res = db.exec("SELECT name, role FROM sailors ORDER BY name ASC");
+                            if (res.length > 0 && res[0].values.length > 0) {
+                                const rows = res[0].values.map(row => `${row[0]} (${row[1]})`).join('\n');
+                                return { success: true, message: `✅ Команда Одиссея:\n${rows}` };
+                            } else return { success: false, message: '❌ Нет данных.' };
+                        } catch(e) { return { success: false, message: '❌ Ошибка запроса.' }; }
+                    }
+                }
+            ];
+        }
