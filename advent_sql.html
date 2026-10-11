@@ -517,7 +517,6 @@ CREATE TABLE bookings (
   quantity INT NOT NULL,
   booking_date DATE,
   processed BOOLEAN DEFAULT FALSE,
-  gift_wrapped BOOLEAN DEFAULT FALSE,
   FOREIGN KEY (tourist_id) REFERENCES tourists(tourist_id),
   FOREIGN KEY (souvenir_id) REFERENCES souvenirs(souvenir_id)
 );
@@ -601,21 +600,21 @@ INSERT INTO summer_movies (title, year, genre, rating) VALUES
 ('Chasing Mavericks', 2012, 'Drama', 7.0),
 ('Point Break', 1991, 'Action', 7.3);
 
-INSERT INTO bookings (tourist_id, souvenir_id, quantity, booking_date, processed, gift_wrapped) VALUES
-(1, 1, 2, '2026-07-05', TRUE, TRUE),
-(2, 2, 1, '2026-07-10', FALSE, FALSE),
-(3, 3, 1, '2026-07-20', FALSE, TRUE),
-(1, 4, 3, '2026-06-28', TRUE, FALSE),
-(4, 7, 2, '2026-07-24', FALSE, TRUE),
-(5, 6, 5, '2026-07-01', TRUE, FALSE),
-(6, 8, 1, '2026-07-23', TRUE, TRUE),
-(7, 5, 1, '2025-07-15', TRUE, FALSE),
-(2, 9, 1, '2026-07-02', TRUE, FALSE),
-(3, 10, 2, '2026-07-02', FALSE, TRUE),
-(4, 11, 4, '2026-07-15', TRUE, FALSE),
-(5, 12, 1, '2026-07-18', FALSE, FALSE),
-(6, 1, 1, '2026-07-24', TRUE, TRUE),
-(8, 3, 2, '2026-08-01', FALSE, FALSE);
+INSERT INTO bookings (tourist_id, souvenir_id, quantity, booking_date, processed) VALUES
+(1, 1, 2, '2026-07-05', TRUE),
+(2, 2, 1, '2026-07-10', FALSE),
+(3, 3, 1, '2026-07-20', FALSE),
+(1, 4, 3, '2026-06-28', TRUE),
+(4, 7, 2, '2026-07-24', FALSE),
+(5, 6, 5, '2026-07-01', TRUE),
+(6, 8, 1, '2026-07-23', TRUE),
+(7, 5, 1, '2025-07-15', TRUE),
+(2, 9, 1, '2026-07-02', TRUE),
+(3, 10, 2, '2026-07-02', FALSE),
+(4, 11, 4, '2026-07-15', TRUE),
+(5, 12, 1, '2026-07-18', FALSE),
+(6, 1, 1, '2026-07-24', TRUE),
+(8, 3, 2, '2026-08-01', FALSE);
 
 INSERT INTO trips (tourist_id, trip_date, description) VALUES
 (1, '2026-07-24', 'Beach party and BBQ'),
@@ -761,15 +760,15 @@ INSERT INTO trips (tourist_id, trip_date, description) VALUES
             }, {
                 day: 7,
                 title: 'Уменьшаем запасы в лавке',
-                skill: 'UPDATE, транзакции',
-                task: 'При выполнении бронирования (например, booking_id=1) уменьшить stock сувенира.',
-                expected_table: `<p>✅ Транзакция выполнена. Stock сувенира с id=1 уменьшился на 2 (было 20, стало 18).</p>`,
-                solution: `START TRANSACTION;\nUPDATE souvenirs s\nJOIN bookings b ON s.souvenir_id = b.souvenir_id\nSET s.stock = s.stock - b.quantity\nWHERE b.booking_id = 1 AND s.stock >= b.quantity;\nCOMMIT;`
+                skill: 'UPDATE',
+                task: 'При выполнении бронирования (например, booking_id=1) уменьшить stock сувенира. <br>Примечание: можно выполнять с помощью UPDATE, либо использования транзакции.',
+                expected_table: `<p>✅ UPDATE выполнен. Stock сувенира с id=1 уменьшился на 2 (было 20, стало 18).</p>`,
+                solution: `UPDATE souvenirs s\nJOIN bookings b ON s.souvenir_id = b.souvenir_id\nSET s.stock = s.stock - b.quantity\nWHERE b.booking_id = 1 AND s.stock >= b.quantity;`
             }, {
                 day: 8,
                 title: 'Чистка старых воспоминаний',
                 skill: 'DELETE',
-                task: 'Удалить поездки (trips) старше 2 лет.',
+                task: 'Удалить поездки (trips) старше 2 лет. <br>Примечание: перед удалением выполните SELECT для проверки и сделайте резервную копию таблицы.',
                 expected_table: `<p>✅ Удалены поездки с trip_date < '2024-07-21' (записи с id 3 и 4).</p>`,
                 solution: `DELETE FROM trips WHERE trip_date < DATE_SUB(CURDATE(), INTERVAL 2 YEAR);`
             }, {
@@ -830,7 +829,7 @@ INSERT INTO trips (tourist_id, trip_date, description) VALUES
                 day: 13,
                 title: 'Большой летний JOIN',
                 skill: 'Множественные JOIN',
-                task: 'Вывести туристов, их бронирования и связанные пляжные предметы/песни (используйте LEFT JOIN).',
+                task: 'Вывести туристов, их бронирования и связанные пляжные предметы/песни (используйте LEFT JOIN).<br>Примечание: для несвязанных таблиц связываем по id = 1.',
                 expected_table: `<table>
                 <tr><th>name</th><th>booking_date</th><th>souvenir</th><th>beach_item</th><th>song</th></tr>
                 <tr><td>Anna Summer</td><td>2026-07-24</td><td>Wooden Surfboard Toy</td><td>Wooden Starfish</td><td>Summer Breeze</td></tr>
@@ -844,13 +843,19 @@ INSERT INTO trips (tourist_id, trip_date, description) VALUES
                 </table>`,
                 solution: `SELECT t.name, b.booking_date, s.name AS souvenir, bi.name AS beach_item, ss.title AS song\nFROM tourists t\nLEFT JOIN bookings b ON t.tourist_id = b.tourist_id\nLEFT JOIN souvenirs s ON b.souvenir_id = s.souvenir_id\nLEFT JOIN beach_items bi ON bi.item_id = 1\nLEFT JOIN summer_songs ss ON ss.song_id = 1;`
             }, {
-                day: 14,
-                title: 'Добавляем упаковку подарков',
-                skill: 'ALTER TABLE',
-                task: 'Добавить столбец gift_wrapped BOOLEAN DEFAULT FALSE в таблицу bookings.',
-                expected_table: `<p>✅ Столбец добавлен. Теперь bookings содержит поле gift_wrapped (по умолчанию FALSE).</p>`,
-                solution: `ALTER TABLE bookings ADD COLUMN gift_wrapped BOOLEAN DEFAULT FALSE;`
-            }, {
+                    day: 14,
+                    title: 'Добавляем упаковку подарков',
+                    skill: 'ALTER TABLE, UPDATE',
+                    task: 'Добавьте столбец gift_wrapped BOOLEAN DEFAULT FALSE в таблицу bookings, а затем отметьте как упакованные (gift_wrapped = TRUE) те бронирования, где количество товара (quantity) больше 2.',
+                    expected_table: `<p>✅ Столбец добавлен. Обновлены бронирования с quantity > 2:</p>
+                <table>
+                <tr><th>booking_id</th><th>tourist_id</th><th>souvenir_id</th><th>quantity</th><th>gift_wrapped</th></tr>
+                <tr><td>4</td><td>1</td><td>4</td><td>3</td><td>1</td></tr>
+                <tr><td>6</td><td>5</td><td>6</td><td>5</td><td>1</td></tr>
+                <tr><td>11</td><td>4</td><td>11</td><td>4</td><td>1</td></tr>
+                </table>`,
+                    solution: `-- 1. Добавляем столбец\nALTER TABLE bookings ADD COLUMN gift_wrapped BOOLEAN DEFAULT FALSE;\n\n-- 2. Обновляем записи с quantity > 2\nUPDATE bookings SET gift_wrapped = TRUE WHERE quantity > 2;\n\n-- 3. Проверяем результат (опционально)\nSELECT booking_id, tourist_id, souvenir_id, quantity, gift_wrapped FROM bookings ORDER BY booking_id;`
+                }, {
                 day: 15,
                 title: 'Плейлист у бассейна',
                 skill: 'JOIN, агрегаты',
@@ -925,13 +930,33 @@ INSERT INTO trips (tourist_id, trip_date, description) VALUES
                 expected_table: `<p>✅ Таблица bookings_july_backup создана и содержит 11 записей (июльские бронирования).</p>`,
                 solution: `CREATE TABLE bookings_july_backup AS\nSELECT * FROM bookings WHERE booking_date BETWEEN '2026-07-01' AND '2026-07-31';`
             }, {
-                day: 21,
-                title: 'JSON-карточки с дополнительными опциями',
-                skill: 'JSON, JSON_EXTRACT',
-                task: 'Добавить столбец metadata JSON в souvenirs и выбрать сувениры с цветом "red".',
-                expected_table: `<p>✅ Столбец добавлен. После заполнения данных запрос вернёт сувениры с цветом "red". (В нашей БД таких нет, поэтому результат пуст).</p>`,
-                solution: `ALTER TABLE souvenirs ADD COLUMN metadata JSON;\n-- Пример запроса:\nSELECT * FROM souvenirs WHERE JSON_EXTRACT(metadata, '$.color') = 'red';`
-            }, {
+                    day: 21,
+                    title: 'JSON-карточки с дополнительными опциями',
+                    skill: 'JSON, JSON_EXTRACT',
+                    task: 'Добавьте столбец metadata JSON в таблицу souvenirs, заполните его для нескольких сувениров (разными цветами и материалами), а затем выберите только те, у которых цвет "red".',
+                    expected_table: `<p>✅ Столбец metadata добавлен. Обновлены сувениры с id 1, 3, 5:</p>
+                <ul>
+                <li>id=1 → {"color":"red","material":"wood"}</li>
+                <li>id=3 → {"color":"blue","material":"metal"}</li>
+                <li>id=5 → {"color":"red","material":"plastic"}</li>
+                </ul>
+                <p>Запрос SELECT вернёт сувениры с цветом "red" (id 1 и 5):</p>
+                <table>
+                <tr><th>souvenir_id</th><th>name</th><th>category</th><th>price</th><th>stock</th><th>metadata</th></tr>
+                <tr><td>1</td><td>Wooden Surfboard Toy</td><td>Beach</td><td>24.99</td><td>20</td><td>{"color":"red","material":"wood"}</td></tr>
+                <tr><td>5</td><td>Luxury Sunglasses</td><td>Accessories</td><td>89.99</td><td>8</td><td>{"color":"red","material":"plastic"}</td></tr>
+                </table>`,
+                    solution: `-- 1. Добавляем столбец JSON
+                ALTER TABLE souvenirs ADD COLUMN metadata JSON;
+
+                -- 2. Заполняем метаданные для трёх сувениров
+                UPDATE souvenirs SET metadata = '{"color":"red","material":"wood"}' WHERE souvenir_id = 1;
+                UPDATE souvenirs SET metadata = '{"color":"blue","material":"metal"}' WHERE souvenir_id = 3;
+                UPDATE souvenirs SET metadata = '{"color":"red","material":"plastic"}' WHERE souvenir_id = 5;
+
+                -- 3. Выбираем сувениры с цветом "red"
+                SELECT * FROM souvenirs WHERE JSON_EXTRACT(metadata, '$.color') = 'red';`
+                }, {
                 day: 22,
                 title: 'Ярлыки в поиске',
                 skill: 'CREATE INDEX, EXPLAIN',
